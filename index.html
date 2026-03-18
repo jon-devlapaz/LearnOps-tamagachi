@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LearnOps</title>
+  <style>
+    /* ┌──────────────────────────────────────────────────────────┐
+       │  CSS TABLE OF CONTENTS                                   │
+       │  1. @property registrations                              │
+       │  2. Primitive tokens                                     │
+       │  3. Base elements                                        │
+       │  4. Grid container + tile styles                         │
+       │  5. Crystal instance state selectors                     │
+       │  6. Night mode (.night on body)                          │
+       │  7. @keyframes                                           │
+       │  8. Transition animation classes                         │
+       │  9. Drawer + backdrop                                    │
+       │  10. Concept list items                                  │
+       └──────────────────────────────────────────────────────────┘ */
+
+    /* ── 1. @property ─────────────────────────────────────────── */
+    @property --crystal-glow-opacity { syntax:'<number>'; inherits:false; initial-value:0.10; }
+    @property --crystal-glow-blur    { syntax:'<length>'; inherits:false; initial-value:6px;  }
+
+    /* ── 2. Primitive tokens ──────────────────────────────────── */
+    :root {
+      --bg:         #f0eff6;
+      --card-bg:    #ffffff;
+      --text:       #2d2b3d;
+      --text-sub:   #6b6880;
+      --primary:    #7c6fcd;
+      --locked:     #c4c2d4;
+      --danger:     #e05c6b;
+      --success:    #4dba8a;
+      --drawer-bg:  #f8f7fc;
+      --border:     rgba(100,80,180,0.10);
+      --tile-top:   hsl(260,20%,95%);
+      --tile-left:  hsl(260,15%,85%);
+      --tile-right: hsl(260,15%,75%);
+      --morph-ms:   600ms;
+      --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    /* ── 3. Base elements ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      transition: background-color 0.6s ease;
+    }
+
+    .container {
+      background-color: var(--card-bg);
+      padding: 36px 40px 40px;
+      border-radius: 24px;
+      box-shadow: 0 8px 40px rgba(100,80,180,0.10), 0 1px 4px rgba(0,0,0,0.06);
+      text-align: center;
+      max-width: 440px;
+      width: 100%;
+      position: relative;
+      transition: background-color 0.6s ease, opacity 0.3s ease, transform 0.3s ease;
+    }
+    body[data-drawer-open="true"] .container {
+      opacity: 0.45;
+      transform: scale(0.97);
+      pointer-events: none;
+    }
+
+    h2 {
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin: 0 0 2px;
+      transition: color 0.6s ease;
+    }
+    p.desc {
+      color: var(--text);
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1.3;
+      min-height: 36px;
+      margin: 10px 0 24px;
+      transition: color 0.6s ease;
+    }
+    .concept-label {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: none;
+      color: var(--primary);
+      margin-bottom: 4px;
+      min-height: 14px;
+      transition: color 0.6s ease;
+    }
+
+    .controls { display:flex; flex-direction:column; gap:10px; }
+    .row      { display:flex; gap:10px; }
+
+    button {
+      flex:1; padding:11px 16px; border:none; border-radius:10px;
+      font-size:13px; font-weight:600; cursor:pointer;
+      background-color:var(--primary); color:white; letter-spacing:0.1px;
+      transition: opacity 0.15s, transform 0.1s, background-color 0.3s;
+    }
+    button:hover:not(:disabled) { opacity:0.88; }
+    button:active:not(:disabled) { transform:translateY(1px); }
+    button:disabled { background-color:var(--locked); cursor:not-allowed; transform:none; opacity:1; }
+    .btn-fail { background-color:var(--danger); }
+    .btn-pass { background-color:var(--success); }
+
+    #timer-display {
+      font-size:26px; font-family:'SF Mono','Fira Code',monospace;
+      font-weight:700; letter-spacing:2px; color:var(--primary);
+      margin:0 0 20px; display:none; transition:color 0.6s ease;
+    }
+
+    .drawer-toggle {
+      position:absolute; top:14px; left:16px;
+      background:none; border:none; cursor:pointer;
+      padding:6px; border-radius:8px; color:var(--text-sub);
+      font-size:18px; line-height:1; flex:none; width:auto;
+      transition:color 0.2s, background-color 0.2s;
+    }
+    .drawer-toggle:hover { color:var(--primary); background-color:var(--border); }
+
+    .dev-skip {
+      position:absolute; top:12px; right:12px;
+      background:none; color:transparent; font-size:9px;
+      padding:4px 6px; box-shadow:none; width:auto; flex:none; letter-spacing:0;
+    }
+    .dev-skip:hover { color:var(--text-sub) !important; }
+
+    /* ── 4. Grid container + tile styles ─────────────────────── */
+    #grid-container {
+      width:280px;
+      margin: 10px auto 16px;
+    }
+    #grid-svg {
+      display:block;
+      overflow:visible;
+    }
+    .tile-group {
+      pointer-events:all;
+    }
+
+    /* Tile polygons */
+    .tile-left  { fill:var(--tile-left);  transition:fill 0.6s ease; }
+    .tile-right { fill:var(--tile-right); transition:fill 0.6s ease; }
+    .tile-top   { fill:var(--tile-top);   transition:fill 0.6s ease; }
+
+    /* Click-catch polygon on each tile */
+    .tile-hit {
+      fill:transparent;
+      cursor:pointer;
+      pointer-events:visiblePainted;
+    }
+
+    /* Selection highlight */
+    .tile-highlight {
+      fill:none;
+      stroke:var(--primary);
+      stroke-width:2.5;
+      opacity:0;
+      transition:opacity 0.25s ease, stroke 0.6s ease;
+      pointer-events:none;
+    }
+    .tile-group.selected .tile-highlight { opacity:1; }
+
+    /* Empty slot */
+    .tile-group.empty .tile-left,
+    .tile-group.empty .tile-right { opacity:0.35; }
+    .tile-group.empty .tile-top   { fill:none; }
+    .tile-group.empty .tile-top-dash {
+      fill:none;
+      stroke:var(--locked);
+      stroke-width:1.5;
+      stroke-dasharray:4 3;
+      opacity:0.4;
+    }
+    .tile-group.empty .tile-hit { cursor:default; }
+
+    /* Crystal instance polygons — CSS transitions for color changes */
+    .crystal-instance polygon {
+      transition: fill var(--morph-ms) ease, opacity var(--morph-ms) ease;
+    }
+
+    /* Animation wrapper — receives keyframe animation classes */
+    .crystal-anim { transition: opacity 0.3s ease; }
+
+    /* ── 5. Crystal state color selectors ────────────────────── */
+    .crystal-instance[data-state="instantiated"] .cp-top         { fill:hsl(270,20%,68%); }
+    .crystal-instance[data-state="instantiated"] .cp-upper-left  { fill:hsl(270,18%,55%); }
+    .crystal-instance[data-state="instantiated"] .cp-upper-right { fill:hsl(270,16%,46%); }
+    .crystal-instance[data-state="instantiated"] .cp-lower-left  { fill:hsl(270,16%,46%); }
+    .crystal-instance[data-state="instantiated"] .cp-lower-right { fill:hsl(270,14%,38%); }
+    .crystal-instance[data-state="instantiated"] .cp-bottom-tip  { fill:hsl(270,14%,38%); }
+    .crystal-instance[data-state="instantiated"] .cp-specular    { fill:hsl(270,30%,85%); opacity:0.35; }
+    .crystal-instance[data-state="instantiated"] .cp-glow        { fill:hsl(270,20%,60%); opacity:0.10; }
+
+    .crystal-instance[data-state="growing"] .cp-top         { fill:hsl(280,45%,72%); }
+    .crystal-instance[data-state="growing"] .cp-upper-left  { fill:hsl(275,42%,60%); }
+    .crystal-instance[data-state="growing"] .cp-upper-right { fill:hsl(270,40%,50%); }
+    .crystal-instance[data-state="growing"] .cp-lower-left  { fill:hsl(270,40%,46%); }
+    .crystal-instance[data-state="growing"] .cp-lower-right { fill:hsl(265,38%,38%); }
+    .crystal-instance[data-state="growing"] .cp-bottom-tip  { fill:hsl(265,38%,35%); }
+    .crystal-instance[data-state="growing"] .cp-specular    { fill:hsl(285,60%,90%); opacity:0.70; }
+    .crystal-instance[data-state="growing"] .cp-glow        { fill:hsl(275,45%,65%); opacity:0.20; }
+
+    .crystal-instance[data-state="fractured"] .cp-top         { fill:hsl(275,28%,62%); }
+    .crystal-instance[data-state="fractured"] .cp-upper-left  { fill:hsl(275,25%,50%); }
+    .crystal-instance[data-state="fractured"] .cp-upper-right { fill:hsl(255,32%,44%); }
+    .crystal-instance[data-state="fractured"] .cp-lower-left  { fill:hsl(275,22%,42%); }
+    .crystal-instance[data-state="fractured"] .cp-lower-right { fill:hsl(255,28%,35%); }
+    .crystal-instance[data-state="fractured"] .cp-bottom-tip  { fill:hsl(260,28%,32%); }
+    .crystal-instance[data-state="fractured"] .cp-specular    { fill:hsl(275,20%,78%); opacity:0.28; }
+    .crystal-instance[data-state="fractured"] .cp-glow        { fill:hsl(290,30%,50%); opacity:0.07; }
+
+    .crystal-instance[data-state="hibernating"] .cp-top         { fill:hsl(260,50%,55%); }
+    .crystal-instance[data-state="hibernating"] .cp-upper-left  { fill:hsl(258,48%,40%); }
+    .crystal-instance[data-state="hibernating"] .cp-upper-right { fill:hsl(255,45%,32%); }
+    .crystal-instance[data-state="hibernating"] .cp-lower-left  { fill:hsl(258,45%,28%); }
+    .crystal-instance[data-state="hibernating"] .cp-lower-right { fill:hsl(255,42%,22%); }
+    .crystal-instance[data-state="hibernating"] .cp-bottom-tip  { fill:hsl(255,42%,20%); }
+    .crystal-instance[data-state="hibernating"] .cp-specular    { fill:hsl(270,60%,80%); opacity:0.50; }
+    .crystal-instance[data-state="hibernating"] .cp-glow {
+      fill:hsl(260,55%,60%);
+      animation:hibernatePulse 3s ease-in-out infinite;
+    }
+
+    .crystal-instance[data-state="actualized"] .cp-top         { fill:hsl(282,48%,78%); }
+    .crystal-instance[data-state="actualized"] .cp-upper-left  { fill:hsl(278,45%,65%); }
+    .crystal-instance[data-state="actualized"] .cp-upper-right { fill:hsl(272,42%,54%); }
+    .crystal-instance[data-state="actualized"] .cp-lower-left  { fill:hsl(272,42%,50%); }
+    .crystal-instance[data-state="actualized"] .cp-lower-right { fill:hsl(268,40%,42%); }
+    .crystal-instance[data-state="actualized"] .cp-bottom-tip  { fill:hsl(268,40%,38%); }
+    .crystal-instance[data-state="actualized"] .cp-specular    { fill:white; opacity:0.88; }
+    .crystal-instance[data-state="actualized"] .cp-glow        { fill:hsl(278,50%,70%); opacity:0.30; }
+
+    /* ── 6. Night mode ────────────────────────────────────────── */
+    body.night {
+      --bg:         #12111e;
+      --card-bg:    #1c1a2e;
+      --text:       #ccc8e8;
+      --text-sub:   #7b78a0;
+      --primary:    #9d8fe8;
+      --locked:     #3a3756;
+      --drawer-bg:  #161428;
+      --border:     rgba(160,140,240,0.10);
+      --tile-top:   hsl(260,20%,18%);
+      --tile-left:  hsl(260,15%,13%);
+      --tile-right: hsl(260,15%,10%);
+    }
+
+    /* ── 7. @keyframes ───────────────────────────────────────── */
+    @keyframes hibernatePulse {
+      0%,100% { opacity:0.15; }
+      50%      { opacity:0.45; }
+    }
+    @keyframes gridEmerge {
+      from { opacity:0.2; filter:blur(1px); }
+      to   { opacity:1;   filter:none; }
+    }
+    @keyframes gridCrack {
+      0%   { filter:brightness(1); }
+      20%  { filter:brightness(1.6) saturate(0.3); }
+      50%  { filter:brightness(0.8); }
+      100% { filter:brightness(1); }
+    }
+    @keyframes gridCocoon {
+      0%   { filter:brightness(1); }
+      40%  { filter:brightness(1.3) blur(0.5px); }
+      100% { filter:brightness(1) blur(0); }
+    }
+    @keyframes gridActualize {
+      0%   { filter:brightness(0.8); }
+      40%  { filter:brightness(1.5) saturate(1.2); }
+      100% { filter:brightness(1); }
+    }
+    @keyframes gridRepair {
+      0%   { filter:brightness(0.8) saturate(0.5); }
+      50%  { filter:brightness(1.3) saturate(1.2); }
+      100% { filter:brightness(1) saturate(1); }
+    }
+    @keyframes tileSelect {
+      from { opacity:0; transform:scale(0.95); }
+      to   { opacity:1; transform:scale(1); }
+    }
+
+    /* ── 8. Transition animation classes ─────────────────────── */
+    .crystal-anim.anim-emerge    { animation:gridEmerge    500ms ease forwards; }
+    .crystal-anim.anim-crack     { animation:gridCrack     650ms ease forwards; }
+    .crystal-anim.anim-cocoon    { animation:gridCocoon    700ms ease forwards; }
+    .crystal-anim.anim-actualize { animation:gridActualize 750ms ease forwards; }
+    .crystal-anim.anim-repair    { animation:gridRepair    550ms ease forwards; }
+
+    /* ── 9. Drawer + backdrop ─────────────────────────────────── */
+    #backdrop {
+      position:fixed; inset:0;
+      background:rgba(20,16,40,0.25);
+      opacity:0; pointer-events:none;
+      transition:opacity 0.3s ease; z-index:50;
+    }
+    body[data-drawer-open="true"] #backdrop { opacity:1; pointer-events:all; }
+
+    #drawer {
+      position:fixed; top:0; left:-300px; width:280px; height:100vh; height:100dvh;
+      background-color:var(--drawer-bg);
+      border-right:1px solid var(--border);
+      box-shadow:4px 0 24px rgba(60,40,120,0.10);
+      transition:left 0.32s cubic-bezier(0.175,0.885,0.32,1.275),
+                 background-color 0.6s ease;
+      z-index:100; display:flex; flex-direction:column; overflow:hidden;
+    }
+    #drawer[data-open="true"] { left:0; }
+
+    .drawer-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:20px 16px 16px; border-bottom:1px solid var(--border); flex-shrink:0;
+    }
+    .drawer-header h3 {
+      font-size:12px; font-weight:700; letter-spacing:0.8px;
+      text-transform:uppercase; color:var(--text-sub);
+    }
+    .drawer-close {
+      background:none; border:none; cursor:pointer; color:var(--text-sub);
+      font-size:18px; line-height:1; padding:4px; border-radius:6px;
+      width:auto; flex:none; transition:color 0.15s;
+    }
+    .drawer-close:hover { color:var(--text); }
+
+    #concept-list { flex:1; overflow-y:auto; padding:8px 0; }
+
+    /* ── 10. Concept list items ──────────────────────────────── */
+    .concept-item {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 16px; cursor:pointer;
+      transition:background-color 0.15s;
+    }
+    .concept-item:hover { background-color:var(--border); }
+    .concept-item.active { background-color:rgba(124,111,205,0.10); }
+    .concept-item.active .concept-item-name { color:var(--primary); font-weight:600; }
+
+    .concept-dot {
+      width:8px; height:8px; border-radius:50%; flex-shrink:0;
+    }
+    .concept-dot[data-state="instantiated"] { background:hsl(270,15%,65%); }
+    .concept-dot[data-state="growing"]      { background:hsl(280,45%,65%); }
+    .concept-dot[data-state="fractured"]    { background:var(--danger); }
+    .concept-dot[data-state="hibernating"]  { background:hsl(255,45%,45%); }
+    .concept-dot[data-state="actualized"]   { background:hsl(278,50%,72%); box-shadow:0 0 5px hsl(278,50%,72%); }
+
+    .concept-item-name {
+      flex:1; font-size:13px; color:var(--text);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      transition:color 0.2s;
+    }
+    .concept-delete {
+      background:none; border:none; cursor:pointer; color:transparent;
+      font-size:16px; line-height:1; padding:2px 4px; border-radius:4px;
+      flex:none; width:auto; transition:color 0.15s, background-color 0.15s;
+    }
+    .concept-item:hover .concept-delete { color:var(--text-sub); }
+    .concept-delete:hover { color:var(--danger) !important; background-color:rgba(224,92,107,0.10); }
+
+    .add-trigger {
+      display:flex; align-items:center; gap:10px; padding:10px 16px;
+      cursor:pointer; color:var(--text-sub); font-size:13px;
+      border-top:1px solid var(--border); flex-shrink:0;
+      transition:color 0.15s, background-color 0.15s;
+    }
+    .add-trigger:hover { color:var(--primary); background-color:var(--border); }
+    .add-trigger-icon { font-size:16px; color:var(--primary); flex-shrink:0; }
+    .add-trigger.disabled { opacity:0.4; cursor:not-allowed; }
+
+    #tile-tooltip {
+      position: absolute;
+      transform: translate(-50%, -100%) translateY(-8px);
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--primary);
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 2px 10px rgba(80,60,160,0.12);
+      opacity: 0;
+      transition: opacity 0.18s ease;
+      z-index: 10;
+    }
+    #tile-tooltip.visible { opacity: 1; }
+    .add-trigger.disabled:hover { color:var(--text-sub); background:none; }
+
+    .add-input-row {
+      display:flex; align-items:center; gap:8px; padding:8px 16px;
+      border-top:1px solid var(--border); flex-shrink:0;
+    }
+    .add-input-row input {
+      flex:1; background:var(--card-bg); border:1px solid var(--primary);
+      border-radius:8px; padding:8px 10px; font-size:13px; color:var(--text); outline:none;
+    }
+    .add-input-row input::placeholder { color:var(--text-sub); }
+    .add-input-row .confirm-btn {
+      background:var(--primary); border:none; border-radius:8px; color:white;
+      font-size:13px; font-weight:600; padding:8px 12px; cursor:pointer;
+      flex:none; width:auto; transition:opacity 0.15s;
+    }
+    .add-input-row .confirm-btn:hover { opacity:0.85; }
+    .add-input-row .cancel-btn {
+      background:none; border:none; color:var(--text-sub); font-size:18px;
+      cursor:pointer; padding:4px; flex:none; width:auto; transition:color 0.15s;
+    }
+    .add-input-row .cancel-btn:hover { color:var(--danger); }
+  </style>
+</head>
+<body>
+
+<div id="backdrop" onclick="App.closeDrawer()"></div>
+
+<div id="drawer" data-open="false">
+  <div class="drawer-header">
+    <h3>Concepts</h3>
+    <button class="drawer-close" onclick="App.closeDrawer()">×</button>
+  </div>
+  <div id="concept-list"></div>
+  <div id="add-trigger-area"></div>
+</div>
+
+<div class="container" id="card">
+  <button class="drawer-toggle" onclick="App.toggleDrawer()" title="Concepts">☰</button>
+  <button class="dev-skip" id="dev-btn" style="display:none;" onclick="App.fastForward()">[skip 24h]</button>
+
+  <!-- 2×2 isometric grid -->
+  <div id="grid-container" style="position:relative; padding-top:28px; overflow:visible;">
+    <svg id="grid-svg" viewBox="0 0 280 220" width="280" height="220"
+         xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
+      <defs>
+        <filter id="glow-filter" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+      </defs>
+      <!-- Paint order: back → front. Transforms are fixed. Content populated by renderGrid(). -->
+      <g id="tile-0" class="tile-group" transform="translate(70,45)"  onclick="App.selectTile(0)"></g>
+      <g id="tile-1" class="tile-group" transform="translate(0,85)"   onclick="App.selectTile(1)"></g>
+      <g id="tile-2" class="tile-group" transform="translate(140,85)" onclick="App.selectTile(2)"></g>
+      <g id="tile-3" class="tile-group" transform="translate(70,125)" onclick="App.selectTile(3)"></g>
+    </svg>
+    <div id="tile-tooltip"></div>
+  </div>
+
+  <div class="concept-label" id="concept-label"></div>
+  <h2 id="title">LearnOps</h2>
+  <p class="desc" id="desc">Open the menu to add your first concept.</p>
+  <div id="timer-display">24:00:00</div>
+
+  <div class="controls" id="primary-controls" style="display:none;">
+    <button id="btn-extract" onclick="App.extract()">1. Extract</button>
+    <button id="btn-present" onclick="App.present()" disabled>2. Present</button>
+    <button id="btn-drill"   onclick="App.drill()"   disabled>3. Drill (Recall)</button>
+  </div>
+  <div class="controls row" id="drill-controls" style="display:none;">
+    <button class="btn-fail" onclick="App.drillFail()">Simulate Fail</button>
+    <button class="btn-pass" onclick="App.drillPass()">Simulate Pass</button>
+  </div>
+  <div class="controls" id="consolidate-controls" style="display:none; margin-top:10px;">
+    <button id="btn-consolidate" onclick="App.consolidate()">4. Consolidate</button>
+  </div>
+</div>
+
+<script>
+const App = (() => {
+  /* ┌──────────────────────────────────────────────────────────┐
+     │  JS TABLE OF CONTENTS                                    │
+     │  1. DOM references                                       │
+     │  2. Pub/sub Bus                                          │
+     │  3. GEO — polygon coordinate arrays (5 states × 8 polys) │
+     │  4. STATES — display config                              │
+     │  5. Coordinate utilities + easing                        │
+     │  6. MorphEngine — shared rAF, multiple crystal tasks     │
+     │  7. Transition animation helpers                         │
+     │  8. Grid rendering — tiles + crystals                    │
+     │  9. Data store                                           │
+     │  10. Drawer                                              │
+     │  11. Concept list render                                 │
+     │  12. CRUD — add / delete / selectTile                    │
+     │  13. setState + control helpers                          │
+     │  14. Pipeline action handlers                            │
+     │  15. Timer                                               │
+     │  16. Init + restore                                      │
+     └──────────────────────────────────────────────────────────┘ */
+
+  // ── 1. DOM references ──────────────────────────────────────
+  const card                = document.getElementById('card');
+  const titleEl             = document.getElementById('title');
+  const descEl              = document.getElementById('desc');
+  const conceptLabelEl      = document.getElementById('concept-label');
+  const primaryControls     = document.getElementById('primary-controls');
+  const drillControls       = document.getElementById('drill-controls');
+  const consolidateControls = document.getElementById('consolidate-controls');
+  const timerDisplay        = document.getElementById('timer-display');
+  const devBtn              = document.getElementById('dev-btn');
+  const drawer              = document.getElementById('drawer');
+  const conceptListEl       = document.getElementById('concept-list');
+  const addTriggerArea      = document.getElementById('add-trigger-area');
+
+  const TILE_IDS = ['tile-0','tile-1','tile-2','tile-3'];
+  const tileEls  = TILE_IDS.map(id => document.getElementById(id));
+
+  // polygons[tileIdx][polyIdx] — rebuilt by renderGrid()
+  const crystalPolygons = [null, null, null, null];
+
+  const POLYGON_IDS = [
+    'cp-top','cp-upper-left','cp-upper-right',
+    'cp-lower-left','cp-lower-right',
+    'cp-bottom-tip','cp-specular','cp-glow',
+  ];
+
+  // ── 2. Bus ─────────────────────────────────────────────────
+  const Bus = (() => {
+    const L = {};
+    return {
+      on:   (ev, fn) => (L[ev] ??= []).push(fn),
+      emit: (ev, d)  => (L[ev]||[]).forEach(fn => fn(d)),
+    };
+  })();
+
+  // ── 3. GEO ─────────────────────────────────────────────────
+  // Index order: [0]cp-top [1]cp-upper-left [2]cp-upper-right
+  //              [3]cp-lower-left [4]cp-lower-right
+  //              [5]cp-bottom-tip [6]cp-specular [7]cp-glow
+  const GEO = {
+    instantiated: [
+      [100,90,  85,108, 100,130, 115,108],
+      [100,90,  85,108,  82,130, 100,130],
+      [100,90, 100,130, 118,130, 115,108],
+      [100,130,  82,130,  88,152, 100,168],
+      [100,130, 100,168, 112,152, 118,130],
+      [88,152, 100,168, 112,152],
+      [106,96, 105,112, 109,103],
+      [100,90, 115,108, 118,130, 112,152, 100,168, 88,152, 82,130, 85,108],
+    ],
+    growing: [
+      [100,48,  68,76, 100,118, 132,76],
+      [100,48,  68,76,  52,118, 100,118],
+      [100,48, 100,118, 148,118, 132,76],
+      [100,118,  52,118,  74,158, 100,192],
+      [100,118, 100,192, 126,158, 148,118],
+      [74,158, 100,192, 126,158],
+      [106,54, 122,80, 118,66],
+      [100,48, 132,76, 148,118, 126,158, 100,192, 74,158, 52,118, 68,76],
+    ],
+    fractured: [
+      [102,46,  65,78, 102,118, 136,72],
+      [102,46,  65,78,  48,120, 102,118],
+      [102,46, 102,118, 152,116, 136,72],
+      [102,118,  48,120,  72,156, 100,194],
+      [102,118, 100,194, 124,162, 152,116],
+      [72,156, 100,194, 124,162],
+      [108,52, 126,76, 121,63],
+      [102,46, 136,72, 152,116, 124,162, 100,194, 72,156, 48,120, 65,78],
+    ],
+    hibernating: [
+      [100,38,  64,70, 100,118, 136,70],
+      [100,38,  64,70,  48,118, 100,118],
+      [100,38, 100,118, 152,118, 136,70],
+      [100,118,  48,118,  72,165, 100,205],
+      [100,118, 100,205, 128,165, 152,118],
+      [72,165, 100,205, 128,165],
+      [106,44, 126,74, 120,58],
+      [100,38, 136,70, 152,118, 128,165, 100,205, 72,165, 48,118, 64,70],
+    ],
+    actualized: [
+      [100,22,  52,60, 100,118, 148,60],
+      [100,22,  52,60,  32,118, 100,118],
+      [100,22, 100,118, 168,118, 148,60],
+      [100,118,  32,118,  62,172, 100,215],
+      [100,118, 100,215, 138,172, 168,118],
+      [62,172, 100,215, 138,172],
+      [106,28, 138,64, 126,45],
+      [100,22, 148,60, 168,118, 138,172, 100,215, 62,172, 32,118, 52,60],
+    ],
+  };
+
+  // ── 4. STATES config ───────────────────────────────────────
+  const STATES = {
+    instantiated: { title:'Raw Concept',            desc:'Causal architecture not yet extracted.' },
+    growing:      { title:'Structurally Sound',     desc:'Facets forming. Ready for next stage.' },
+    fractured:    { title:'Misconception Detected', desc:'Knowledge gap found. Drill again to repair.' },
+    hibernating:  { title:'Consolidating…',         desc:'Synaptic lockout enforced. Return tomorrow.' },
+    actualized:   { title:'Consolidated',           desc:'Converted into durable understanding.' },
+  };
+
+  // ── 5. Coordinate utilities ────────────────────────────────
+  function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+
+  function interpCoords(from, to, t) { return from.map((v,i)=>v+(to[i]-v)*t); }
+
+  function coordsToPoints(arr) {
+    const pts = [];
+    for (let i=0; i<arr.length; i+=2) pts.push(arr[i]+','+arr[i+1]);
+    return pts.join(' ');
+  }
+
+  // ── 6. MorphEngine — shared rAF loop ──────────────────────
+  const Morph = (() => {
+    const DUR = 620;
+    let tasks = [];
+    let raf   = null;
+
+    function tick(now) {
+      tasks = tasks.filter(task => {
+        if (!task.t0) task.t0 = now;
+        const t = easeInOutCubic(Math.min((now-task.t0)/DUR, 1));
+        task.polys.forEach((el,i) => {
+          if (el) el.setAttribute('points', coordsToPoints(interpCoords(task.from[i], task.to[i], t)));
+        });
+        return t < 1;
+      });
+      if (tasks.length > 0) { raf = requestAnimationFrame(tick); }
+      else                  { raf = null; }
+    }
+
+    return {
+      start(tileIdx, fromState, toState) {
+        // Cancel any existing task for this tile
+        tasks = tasks.filter(t => t.idx !== tileIdx);
+        tasks.push({
+          idx:   tileIdx,
+          polys: crystalPolygons[tileIdx] || [],
+          from:  GEO[fromState],
+          to:    GEO[toState],
+          t0:    null,
+        });
+        if (!raf) raf = requestAnimationFrame(tick);
+      },
+      snap(tileIdx, state) {
+        // Remove any pending task for this tile
+        tasks = tasks.filter(t => t.idx !== tileIdx);
+        const polys = crystalPolygons[tileIdx];
+        if (!polys) return;
+        GEO[state].forEach((coords,i) => {
+          if (polys[i]) polys[i].setAttribute('points', coordsToPoints(coords));
+        });
+      },
+    };
+  })();
+
+  // ── 7. Animation helpers ───────────────────────────────────
+  const ANIM_CLASSES = {
+    emerge:'anim-emerge', crack:'anim-crack', cocoon:'anim-cocoon',
+    actualize:'anim-actualize', repair:'anim-repair',
+  };
+
+  function playAnim(name, tileIdx) {
+    const cls = ANIM_CLASSES[name];
+    if (!cls) return;
+    const el = document.getElementById('crystal-anim-'+tileIdx);
+    if (!el) return;
+    function done() {
+      el.classList.remove(cls);
+      el.removeEventListener('animationend',    done);
+      el.removeEventListener('animationcancel', done);
+    }
+    Object.values(ANIM_CLASSES).forEach(c => el.classList.remove(c));
+    el.addEventListener('animationend',    done);
+    el.addEventListener('animationcancel', done);
+    el.classList.add(cls);
+  }
+
+  // ── 8. Grid rendering ──────────────────────────────────────
+  const TILE_PLATFORM = `
+    <polygon class="tile-left"  points="0,40 70,80 70,90 0,50"/>
+    <polygon class="tile-right" points="140,40 70,80 70,90 140,50"/>
+    <polygon class="tile-top"   points="70,0 140,40 70,80 0,40"/>
+    <polygon class="tile-highlight" points="70,0 140,40 70,80 0,40"/>
+    <polygon class="tile-hit"   points="70,0 140,40 70,80 0,40"/>`;
+
+  const EMPTY_TILE = `
+    <polygon class="tile-left"      points="0,40 70,80 70,90 0,50"/>
+    <polygon class="tile-right"     points="140,40 70,80 70,90 140,50"/>
+    <polygon class="tile-top-dash"  points="70,0 140,40 70,80 0,40"/>`;
+
+  function crystalSVG(idx, state) {
+    const G = GEO[state];
+    const p = coordsToPoints;
+    // Visual paint order: glow → lower faces → upper faces → tip → top → specular
+    return `
+    <g class="crystal-anim" id="crystal-anim-${idx}">
+      <g class="crystal-instance" id="crystal-${idx}" data-state="${state}"
+         transform="translate(35,-39.8) scale(0.35)" style="pointer-events:none;">
+        <ellipse cx="100" cy="228" rx="46" ry="7" fill="rgba(60,40,120,0.10)"/>
+        <polygon id="c${idx}-cp-glow"        class="cp-glow"        points="${p(G[7])}" fill="hsl(270,20%,60%)" opacity="0.10" filter="url(#glow-filter)"/>
+        <polygon id="c${idx}-cp-lower-left"  class="cp-lower-left"  points="${p(G[3])}" fill="hsl(270,16%,46%)" opacity="0.82"/>
+        <polygon id="c${idx}-cp-lower-right" class="cp-lower-right" points="${p(G[4])}" fill="hsl(270,14%,38%)" opacity="0.82"/>
+        <polygon id="c${idx}-cp-upper-left"  class="cp-upper-left"  points="${p(G[1])}" fill="hsl(270,18%,55%)" opacity="0.82"/>
+        <polygon id="c${idx}-cp-upper-right" class="cp-upper-right" points="${p(G[2])}" fill="hsl(270,16%,46%)" opacity="0.82"/>
+        <polygon id="c${idx}-cp-bottom-tip"  class="cp-bottom-tip"  points="${p(G[5])}" fill="hsl(270,14%,38%)" opacity="0.82"/>
+        <polygon id="c${idx}-cp-top"         class="cp-top"         points="${p(G[0])}" fill="hsl(270,20%,68%)" opacity="0.88"/>
+        <polygon id="c${idx}-cp-specular"    class="cp-specular"    points="${p(G[6])}" fill="hsl(270,30%,85%)" opacity="0.35"/>
+      </g>
+    </g>`;
+  }
+
+  function refreshPolygonRefs(tileIdx) {
+    crystalPolygons[tileIdx] = POLYGON_IDS.map(id =>
+      document.getElementById('c'+tileIdx+'-'+id)
+    );
+  }
+
+  function renderGrid() {
+    const concepts = loadConcepts();
+    const activeId = getActiveId();
+
+    tileEls.forEach((tileEl, idx) => {
+      const concept   = concepts[idx] || null;
+      const isSelected = concept && concept.id === activeId;
+      const isEmpty   = !concept;
+
+      tileEl.setAttribute('class', 'tile-group' +
+        (isEmpty    ? ' empty'    : '') +
+        (isSelected ? ' selected' : ''));
+
+      if (isEmpty) {
+        tileEl.innerHTML = EMPTY_TILE;
+        crystalPolygons[idx] = null;
+      } else {
+        tileEl.innerHTML = TILE_PLATFORM + crystalSVG(idx, concept.state);
+        refreshPolygonRefs(idx);
+      }
+    });
+  }
+
+  // ── 9. Data store ──────────────────────────────────────────
+  const STORE_KEY = 'learnops_concepts';
+  const ACTIVE_KEY = 'learnops_active';
+
+  function generateId() {
+    if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    return Date.now().toString(36) + Math.random().toString(36).slice(2);
+  }
+
+  function loadConcepts() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+    catch { return []; }
+  }
+  function saveConcepts(arr) { localStorage.setItem(STORE_KEY, JSON.stringify(arr)); }
+  function getActiveId()     { return localStorage.getItem(ACTIVE_KEY) || null; }
+  function setActiveId(id)   { id ? localStorage.setItem(ACTIVE_KEY,id) : localStorage.removeItem(ACTIVE_KEY); }
+
+  function getActiveConcept() {
+    const id = getActiveId();
+    return loadConcepts().find(c => c.id === id) || null;
+  }
+  function getActiveTileIdx() {
+    const id = getActiveId();
+    return loadConcepts().findIndex(c => c.id === id);
+  }
+  function updateActiveConcept(patch) {
+    const concepts = loadConcepts();
+    const id = getActiveId();
+    const idx = concepts.findIndex(c => c.id === id);
+    if (idx === -1) return;
+    Object.assign(concepts[idx], patch);
+    saveConcepts(concepts);
+  }
+
+  // ── 10. Drawer ─────────────────────────────────────────────
+  function openDrawer()   { drawer.dataset.open='true';  document.body.dataset.drawerOpen='true';  }
+  function closeDrawer()  { drawer.dataset.open='false'; document.body.dataset.drawerOpen='false'; }
+  function toggleDrawer() { drawer.dataset.open==='true' ? closeDrawer() : openDrawer(); }
+
+  // ── 11. Concept list render ────────────────────────────────
+  function renderConceptList() {
+    const concepts = loadConcepts();
+    const activeId = getActiveId();
+    conceptListEl.innerHTML = '';
+
+    concepts.forEach((c,i) => {
+      const item = document.createElement('div');
+      item.className = 'concept-item' + (c.id === activeId ? ' active' : '');
+      item.innerHTML = `
+        <div class="concept-dot" data-state="${c.state}"></div>
+        <span class="concept-item-name">${escHtml(c.name)}</span>
+        <button class="concept-delete" onclick="App.deleteConcept('${c.id}',this)">×</button>`;
+      item.addEventListener('click', e => {
+        if (e.target.classList.contains('concept-delete')) return;
+        selectConcept(c.id);
+        closeDrawer();
+      });
+      conceptListEl.appendChild(item);
+    });
+
+    renderAddTrigger();
+  }
+
+  function renderAddTrigger() {
+    const full = loadConcepts().length >= 4;
+    addTriggerArea.innerHTML = full
+      ? `<div class="add-trigger disabled"><span class="add-trigger-icon">+</span>Grid full (4/4)</div>`
+      : `<div class="add-trigger" id="add-trigger" onclick="App.startAddConcept()">
+           <span class="add-trigger-icon">+</span>New concept
+         </div>`;
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── 12. CRUD ───────────────────────────────────────────────
+  function startAddConcept() {
+    addTriggerArea.innerHTML = `
+      <div class="add-input-row">
+        <input id="new-concept-input" type="text" placeholder="Concept name…" maxlength="80"
+               onkeydown="App._addKeydown(event)" onblur="App._addBlur(event)"/>
+        <button class="confirm-btn" onmousedown="App._addConfirm()">Add</button>
+        <button class="cancel-btn"  onmousedown="App._addCancel()">×</button>
+      </div>`;
+    document.getElementById('new-concept-input').focus();
+  }
+
+  function _addKeydown(e) {
+    if (e.key==='Enter')  { e.preventDefault(); _addConfirm(); }
+    if (e.key==='Escape') { _addCancel(); }
+  }
+  function _addBlur() {
+    setTimeout(() => {
+      const row = document.querySelector('.add-input-row');
+      if (row && document.activeElement !== document.getElementById('new-concept-input')) {
+        renderAddTrigger();
+      }
+    }, 150);
+  }
+  function _addConfirm() {
+    const input = document.getElementById('new-concept-input');
+    const name  = input ? input.value.trim() : '';
+    if (!name) { renderAddTrigger(); return; }
+
+    const concept = { id:generateId(), name, state:'instantiated', createdAt:Date.now(), timerStart:null };
+    const concepts = loadConcepts();
+    if (concepts.length >= 4) { renderAddTrigger(); return; }
+    concepts.push(concept);
+    saveConcepts(concepts);
+    renderGrid();
+    renderConceptList();
+    selectConcept(concept.id);
+    closeDrawer();
+  }
+  function _addCancel() { renderAddTrigger(); }
+
+  function deleteConcept(id, btnEl) {
+    const item = btnEl.closest('.concept-item');
+    if (item) { item.style.transition='all 0.2s ease'; item.style.opacity='0'; item.style.transform='translateX(-12px)'; }
+
+    setTimeout(() => {
+      const concepts = loadConcepts().filter(c => c.id !== id);
+      saveConcepts(concepts);
+
+      if (getActiveId() === id) {
+        if (concepts.length > 0) { selectConcept(concepts[0].id); }
+        else { setActiveId(null); showEmptyState(); }
+      }
+      renderGrid();
+      renderConceptList();
+    }, 200);
+  }
+
+  function selectTile(tileIdx) {
+    const concepts = loadConcepts();
+    const concept  = concepts[tileIdx];
+    if (concept)  { selectConcept(concept.id); }
+    else          { openDrawer(); }
+  }
+
+  function selectConcept(id) {
+    setActiveId(id);
+    const concept = loadConcepts().find(c => c.id === id);
+    if (!concept) return;
+
+    // Update card info
+    conceptLabelEl.textContent = concept.name;
+    titleEl.textContent = STATES[concept.state].title;
+    descEl.textContent  = STATES[concept.state].desc;
+
+    // Night mode
+    document.body.classList.toggle('night', concept.state === 'hibernating');
+
+    // Restore controls for this concept's state
+    applyControlsForState(concept.state, concept);
+
+    renderGrid();       // updates selection highlight
+    renderConceptList();
+  }
+
+  // ── 13. setState + controls ────────────────────────────────
+  let _activeState = null; // current state of selected concept (for drillPass check)
+
+  function setState(newState) {
+    const concepts = loadConcepts();
+    const activeId = getActiveId();
+    const tileIdx  = concepts.findIndex(c => c.id === activeId);
+    if (tileIdx === -1) return;
+
+    const prevState = concepts[tileIdx].state;
+    _activeState    = newState;
+
+    // Persist
+    const patch = { state: newState };
+    if (newState !== 'hibernating') patch.timerStart = null;
+    updateActiveConcept(patch);
+
+    // Update crystal group's data-state (drives CSS color transitions)
+    const crystalEl = document.getElementById('crystal-'+tileIdx);
+    if (crystalEl) {
+      crystalEl.dataset.state = newState;
+      if (prevState !== newState) Morph.start(tileIdx, prevState, newState);
+    }
+
+    // Update dot in list
+    const dot = conceptListEl.querySelector(`.concept-item.active .concept-dot`);
+    if (dot) dot.dataset.state = newState;
+
+    // Card text + night mode
+    titleEl.textContent = STATES[newState].title;
+    descEl.textContent  = STATES[newState].desc;
+    document.body.classList.toggle('night', newState === 'hibernating');
+
+    Bus.emit('state:change', { from:prevState, to:newState, tileIdx });
+  }
+
+  function applyControlsForState(state, concept) {
+    _activeState = state;
+    stopTimer();
+    removeRestartButton();
+    document.getElementById('btn-drill').textContent = '3. Drill (Recall)';
+    showControls(false,false,false,false,false);
+
+    if      (state==='instantiated') { showControls(true,false,false,false,false); setButtons(true,false,false); }
+    else if (state==='growing')      { showControls(true,false,false,false,false); setButtons(false,true,false); }
+    else if (state==='fractured') {
+      showControls(true,false,false,false,false); setButtons(false,false,true);
+      document.getElementById('btn-drill').textContent = '3. Drill (Repair)';
+    }
+    else if (state==='hibernating') {
+      let remaining = 24*60*60;
+      if (concept && concept.timerStart) {
+        const elapsed = Math.floor((Date.now()-concept.timerStart)/1000);
+        remaining = Math.max(0, 24*60*60-elapsed);
+      }
+      if (remaining === 0) { completeConsolidation(); return; }
+      timeLeft = remaining;
+      showControls(false,false,false,true,true);
+      startTimer();
+    }
+    else if (state==='actualized') { showRestartButton(); }
+  }
+
+  function showControls(primary, drill, consolidate, timer, dev) {
+    primaryControls.style.display     = primary     ? 'flex'  : 'none';
+    drillControls.style.display       = drill       ? 'flex'  : 'none';
+    consolidateControls.style.display = consolidate ? 'flex'  : 'none';
+    timerDisplay.style.display        = timer       ? 'block' : 'none';
+    devBtn.style.display              = dev         ? 'block' : 'none';
+  }
+  function setButtons(ex, pr, dr) {
+    document.getElementById('btn-extract').disabled = !ex;
+    document.getElementById('btn-present').disabled = !pr;
+    document.getElementById('btn-drill').disabled   = !dr;
+  }
+
+  function showEmptyState() {
+    _activeState = null;
+    stopTimer();
+    removeRestartButton();
+    conceptLabelEl.textContent = '';
+    titleEl.textContent = 'LearnOps';
+    descEl.textContent  = 'Open the menu to add your first concept.';
+    document.body.classList.remove('night');
+    showControls(false,false,false,false,false);
+  }
+
+  function showRestartButton() {
+    removeRestartButton();
+    const btn = document.createElement('button');
+    btn.id = 'restart-btn';
+    btn.textContent = 'Add Another Concept';
+    btn.style.marginTop = '10px';
+    btn.onclick = () => openDrawer();
+    card.appendChild(btn);
+  }
+  function removeRestartButton() {
+    const b = document.getElementById('restart-btn');
+    if (b) b.remove();
+  }
+
+  // ── 14. Pipeline handlers ──────────────────────────────────
+  function extract() {
+    setState('growing');
+    const idx = getActiveTileIdx();
+    playAnim('emerge', idx);
+    showControls(true,false,false,false,false);
+    setButtons(false,true,false);
+  }
+
+  function present() {
+    conceptLabelEl.textContent = getActiveConcept()?.name || '';
+    titleEl.textContent = 'Segmented Habitat';
+    descEl.textContent  = 'Stage 2: Spatial model rendered. Ready for drill.';
+    showControls(true,false,false,false,false);
+    setButtons(false,false,true);
+  }
+
+  function drill()     { showControls(false,true,false,false,false); }
+
+  function drillFail() {
+    setState('fractured');
+    const idx = getActiveTileIdx();
+    playAnim('crack', idx);
+    showControls(true,false,false,false,false);
+    setButtons(false,false,true);
+    document.getElementById('btn-drill').textContent = '3. Drill (Repair)';
+  }
+
+  function drillPass() {
+    const fromFractured = _activeState === 'fractured';
+    setState('growing');
+    showControls(true,false,true,false,false);
+    setButtons(false,false,false);
+    if (fromFractured) {
+      const idx = getActiveTileIdx();
+      playAnim('repair', idx);
+    }
+  }
+
+  function consolidate() {
+    const now = Date.now();
+    updateActiveConcept({ timerStart:now });
+    setState('hibernating');
+    const idx = getActiveTileIdx();
+    playAnim('cocoon', idx);
+    timeLeft = 24*60*60;
+    showControls(false,false,false,true,true);
+    startTimer();
+  }
+
+  // ── 15. Timer ──────────────────────────────────────────────
+  let timerInterval = null;
+  let timeLeft      = 24*60*60;
+
+  function startTimer() {
+    stopTimer();
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 0) completeConsolidation();
+    }, 1000);
+  }
+  function stopTimer()  { clearInterval(timerInterval); timerInterval = null; }
+  function updateTimerDisplay() {
+    const h = Math.floor(timeLeft/3600).toString().padStart(2,'0');
+    const m = Math.floor((timeLeft%3600)/60).toString().padStart(2,'0');
+    const s = (timeLeft%60).toString().padStart(2,'0');
+    timerDisplay.textContent = `${h}:${m}:${s}`;
+  }
+  function completeConsolidation() {
+    stopTimer();
+    updateActiveConcept({ timerStart:null });
+    setState('actualized');
+    const idx = getActiveTileIdx();
+    playAnim('actualize', idx);
+    showControls(false,false,false,false,false);
+    showRestartButton();
+  }
+  function fastForward() { timeLeft = 3; }
+
+  // ── 16. Init + restore ─────────────────────────────────────
+
+  // Bus: repair animation on fractured → growing
+  Bus.on('state:change', ({ from, to, tileIdx }) => {
+    if (from === 'fractured' && to === 'growing') playAnim('repair', tileIdx);
+  });
+
+  // Migrate legacy single-concept storage
+  const legacyState = localStorage.getItem('learnops-state');
+  if (legacyState && STATES[legacyState]) {
+    const c = {
+      id: generateId(), name: 'My First Concept', state: legacyState,
+      createdAt: Date.now(),
+      timerStart: legacyState==='hibernating'
+        ? parseInt(localStorage.getItem('learnops-timer-start')||'0',10)||null : null,
+    };
+    saveConcepts([c]);
+    setActiveId(c.id);
+    localStorage.removeItem('learnops-state');
+    localStorage.removeItem('learnops-timer-start');
+  }
+
+  // Tile tooltip hover/tap
+  const tooltipEl = document.getElementById('tile-tooltip');
+  let tooltipTimeout = null;
+
+  // Pixel coords (left, top) — tooltip bottom-center above each crystal apex within #grid-container
+  const TILE_TOOLTIP_POS = [
+    { left: 140, top: 37  },  // tile-0 (back center)
+    { left: 70,  top: 77  },  // tile-1 (mid left)
+    { left: 210, top: 77  },  // tile-2 (mid right)
+    { left: 140, top: 117 },  // tile-3 (front center)
+  ];
+
+  function showTileTooltip(idx) {
+    const c = loadConcepts()[idx];
+    if (!c) return;
+    const pos = TILE_TOOLTIP_POS[idx];
+    tooltipEl.style.left = pos.left + 'px';
+    tooltipEl.style.top  = pos.top  + 'px';
+    tooltipEl.textContent = c.name + '  ·  ' + STATES[c.state].title;
+    tooltipEl.classList.add('visible');
+  }
+  function hideTileTooltip() {
+    tooltipEl.classList.remove('visible');
+  }
+
+  tileEls.forEach((el, idx) => {
+    el.addEventListener('mouseenter', () => showTileTooltip(idx));
+    el.addEventListener('mouseleave', hideTileTooltip);
+    el.addEventListener('touchstart', () => {
+      showTileTooltip(idx);
+      clearTimeout(tooltipTimeout);
+      tooltipTimeout = setTimeout(hideTileTooltip, 1800);
+    }, { passive: true });
+  });
+
+  // Render grid first (populates polygon DOM nodes)
+  renderGrid();
+  renderConceptList();
+
+  // Restore selected concept
+  const concepts  = loadConcepts();
+  const toLoad    = concepts.find(c => c.id === getActiveId()) || concepts[0] || null;
+
+  if (!toLoad) {
+    showEmptyState();
+  } else {
+    setActiveId(toLoad.id);
+    conceptLabelEl.textContent = toLoad.name;
+    titleEl.textContent = STATES[toLoad.state].title;
+    descEl.textContent  = STATES[toLoad.state].desc;
+    document.body.classList.toggle('night', toLoad.state === 'hibernating');
+    applyControlsForState(toLoad.state, toLoad);
+    renderGrid(); // re-render to apply .selected class
+  }
+
+  return {
+    toggleDrawer, openDrawer, closeDrawer,
+    selectTile, selectConcept: (id) => { selectConcept(id); closeDrawer(); },
+    deleteConcept,
+    startAddConcept, _addKeydown, _addBlur, _addConfirm, _addCancel,
+    extract, present, drill, drillFail, drillPass, consolidate,
+    fastForward,
+  };
+
+})();
+</script>
+</body>
+</html>
