@@ -1030,8 +1030,8 @@ const App = (() => {
     );
   }
 
-  function renderGrid() {
-    const concepts = loadConcepts();
+  function renderGrid(concepts = loadConcepts()) {
+
     const activeId = getActiveId();
 
     tileEls.forEach((tileEl, idx) => {
@@ -1093,8 +1093,8 @@ const App = (() => {
   function toggleDrawer() { drawer.dataset.open==='true' ? closeDrawer() : openDrawer(); }
 
   // ── 11. Concept list render ────────────────────────────────
-  function renderConceptList() {
-    const concepts = loadConcepts();
+  function renderConceptList(concepts = loadConcepts()) {
+
     const activeId = getActiveId();
     conceptListEl.innerHTML = '';
 
@@ -1131,49 +1131,48 @@ const App = (() => {
   }
 
   // ── 12. CRUD ───────────────────────────────────────────────
-  function startAddConcept() {
+  function buildContentInputUI(container, { onSubmit, onCancel, showNameField, showClipboard }) {
     let uploadedText = '';
     let uploadedFilename = '';
     let activeTab = 'paste';
 
-    addTriggerArea.innerHTML = `
-      <div class="creation-form">
-        <div class="overlay-tabs">
-          <button class="overlay-tab active" data-tab="paste">Text</button>
-          <button class="overlay-tab" data-tab="upload">File</button>
+    container.innerHTML = `
+      <div class="overlay-tabs" style="margin-bottom:12px;">
+        <button class="overlay-tab active" data-tab="paste">${showNameField ? 'Text' : 'Paste'}</button>
+        <button class="overlay-tab" data-tab="upload">${showNameField ? 'File' : 'Upload'}</button>
+      </div>
+      <div class="overlay-panel" data-panel="paste">
+        <textarea class="overlay-textarea" placeholder="${showNameField ? 'Paste a Wikipedia article…' : 'Paste content here…'}"></textarea>
+        ${showClipboard ? '<button class="paste-clipboard-btn" type="button">⌘ Paste from clipboard</button>' : ''}
+      </div>
+      <div class="overlay-panel" data-panel="upload" style="display:none">
+        <div class="overlay-dropzone">
+          Drop a file or click to browse<br>
+          <span style="font-size:11px;opacity:0.65">.txt &nbsp; .md &nbsp; .pdf</span>
         </div>
-        <div class="overlay-panel" data-panel="paste">
-          <textarea class="overlay-textarea" placeholder="Paste a Wikipedia article…"></textarea>
-          <button class="paste-clipboard-btn" type="button">⌘ Paste from clipboard</button>
-        </div>
-        <div class="overlay-panel" data-panel="upload" style="display:none">
-          <div class="overlay-dropzone">
-            Drop a file or click to browse<br>
-            <span style="font-size:11px;opacity:0.65">.txt &nbsp; .md &nbsp; .pdf</span>
-          </div>
-          <input type="file" accept=".txt,.md,.pdf" style="display:none">
-          <p class="overlay-dropfeedback"></p>
-        </div>
+        <input type="file" accept=".txt,.md,.pdf" style="display:none">
+        <p class="overlay-dropfeedback"></p>
+      </div>
+      ${showNameField ? `
         <span class="creation-section-label">Name this concept</span>
         <input class="creation-name-input" type="text" placeholder="e.g. Photosynthesis" maxlength="80">
-        <div class="creation-footer">
-          <button class="creation-cancel">Cancel</button>
-          <button class="creation-submit" disabled>Add Concept →</button>
-        </div>
-      </div>`;
-    addTriggerArea.style.overflowY = 'auto';
+      ` : ''}
+      <div class="${showNameField ? 'creation-footer' : 'overlay-footer'}">
+        <button class="${showNameField ? 'creation-cancel' : 'overlay-cancel'}">Cancel</button>
+        <button class="${showNameField ? 'creation-submit' : 'overlay-extract'}" disabled>${showNameField ? 'Add Concept →' : 'Extract →'}</button>
+      </div>
+    `;
 
-    const form      = addTriggerArea.querySelector('.creation-form');
-    const tabs      = form.querySelectorAll('.overlay-tab');
-    const panels    = form.querySelectorAll('.overlay-panel');
-    const textarea  = form.querySelector('.overlay-textarea');
-    const dropzone  = form.querySelector('.overlay-dropzone');
-    const fileInput = form.querySelector('input[type="file"]');
-    const feedback      = form.querySelector('.overlay-dropfeedback');
-    const pasteClipBtn  = form.querySelector('.paste-clipboard-btn');
-    const nameInput     = form.querySelector('.creation-name-input');
-    const cancelBtn = form.querySelector('.creation-cancel');
-    const submitBtn = form.querySelector('.creation-submit');
+    const tabs      = container.querySelectorAll('.overlay-tab');
+    const panels    = container.querySelectorAll('.overlay-panel');
+    const textarea  = container.querySelector('.overlay-textarea');
+    const dropzone  = container.querySelector('.overlay-dropzone');
+    const fileInput = container.querySelector('input[type="file"]');
+    const feedback  = container.querySelector('.overlay-dropfeedback');
+    const pasteClipBtn = container.querySelector('.paste-clipboard-btn');
+    const nameInput = container.querySelector('.creation-name-input');
+    const cancelBtn = container.querySelector(showNameField ? '.creation-cancel' : '.overlay-cancel');
+    const submitBtn = container.querySelector(showNameField ? '.creation-submit' : '.overlay-extract');
 
     function hasContent() {
       return activeTab === 'paste'
@@ -1181,7 +1180,11 @@ const App = (() => {
         : uploadedText.length > 0;
     }
     function checkSubmitEnabled() {
-      submitBtn.disabled = !(hasContent() && nameInput.value.trim().length > 0);
+      if (showNameField) {
+        submitBtn.disabled = !(hasContent() && nameInput.value.trim().length > 0);
+      } else {
+        submitBtn.disabled = !hasContent();
+      }
     }
 
     tabs.forEach(tab => {
@@ -1193,39 +1196,45 @@ const App = (() => {
       });
     });
 
-    // Cycling placeholder — stops when user types, self-cleans when form is removed
-    const PLACEHOLDERS = [
-      'Paste a Wikipedia article…',
-      'Paste a research paper…',
-      'Paste a meeting transcript…',
-      'Paste a textbook chapter…',
-      'Paste lecture notes…',
-    ];
-    let phIdx = 0;
-    const phTimer = setInterval(() => {
-      if (!document.contains(textarea)) { clearInterval(phTimer); return; }
-      if (textarea.value.length > 0) return;
-      phIdx = (phIdx + 1) % PLACEHOLDERS.length;
-      textarea.placeholder = PLACEHOLDERS[phIdx];
-    }, 2500);
+    let phTimer = null;
+    if (showNameField) {
+      const PLACEHOLDERS = [
+        'Paste a Wikipedia article…', 'Paste a research paper…',
+        'Paste a meeting transcript…', 'Paste a textbook chapter…', 'Paste lecture notes…'
+      ];
+      let phIdx = 0;
+      phTimer = setInterval(() => {
+        if (!document.contains(textarea)) { clearInterval(phTimer); return; }
+        if (textarea.value.length > 0) return;
+        phIdx = (phIdx + 1) % PLACEHOLDERS.length;
+        textarea.placeholder = PLACEHOLDERS[phIdx];
+      }, 2500);
+    }
 
-    pasteClipBtn.addEventListener('click', () => {
-      navigator.clipboard.readText().then(text => {
-        textarea.value = text;
-        textarea.focus();
-        checkSubmitEnabled();
-      }).catch(() => {
-        textarea.focus();
-        document.execCommand('paste');
+    if (showClipboard && pasteClipBtn) {
+      pasteClipBtn.addEventListener('click', () => {
+        navigator.clipboard.readText().then(text => {
+          textarea.value = text;
+          textarea.focus();
+          checkSubmitEnabled();
+        }).catch(() => {
+          textarea.focus();
+          document.execCommand('paste');
+        });
       });
-    });
+    }
 
     textarea.addEventListener('input', checkSubmitEnabled);
-    nameInput.addEventListener('input', checkSubmitEnabled);
-    nameInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !submitBtn.disabled) { e.preventDefault(); doSubmit(); }
-      if (e.key === 'Escape') renderAddTrigger();
-    });
+    if (nameInput) {
+      nameInput.addEventListener('input', checkSubmitEnabled);
+      nameInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !submitBtn.disabled) { e.preventDefault(); doSubmit(); }
+        if (e.key === 'Escape') {
+          if (phTimer) clearInterval(phTimer);
+          onCancel();
+        }
+      });
+    }
 
     dropzone.addEventListener('click', () => fileInput.click());
     dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
@@ -1247,56 +1256,89 @@ const App = (() => {
       submitBtn.disabled = true;
       _readFile(file,
         (text, filename) => {
-          uploadedText = text;
-          uploadedFilename = filename;
+          uploadedText = text; uploadedFilename = filename;
           feedback.className = 'overlay-dropfeedback ok';
           feedback.textContent = `${filename} · ${text.length.toLocaleString()} chars`;
           checkSubmitEnabled();
         },
-        (errMsg, text, filename) => {
+        (errMsg, fallbackText, filename) => {
           feedback.className = 'overlay-dropfeedback error';
           feedback.textContent = errMsg;
-          if (text !== undefined) {
-            // PDF fallback: still usable content despite warning
-            uploadedText = text;
-            uploadedFilename = filename;
+          if (fallbackText !== undefined) {
+            uploadedText = fallbackText; uploadedFilename = filename;
             checkSubmitEnabled();
           }
         }
       );
     }
 
-    cancelBtn.addEventListener('click', renderAddTrigger);
-    submitBtn.addEventListener('mousedown', e => { e.preventDefault(); doSubmit(); });
+    cancelBtn.addEventListener('click', () => {
+      if (phTimer) clearInterval(phTimer);
+      onCancel();
+    });
+
+    submitBtn.addEventListener('mousedown', e => {
+      e.preventDefault();
+      doSubmit();
+    });
 
     function doSubmit() {
-      const name = nameInput.value.trim();
-      if (!name || !hasContent()) return;
-      const concepts = loadConcepts();
-      if (concepts.length >= 4) { renderAddTrigger(); return; }
-
-      const text     = activeTab === 'paste' ? textarea.value.trim() : uploadedText;
-      const type     = activeTab === 'paste' ? 'text' : 'file';
-      const filename = activeTab === 'paste' ? null : uploadedFilename;
-      const id       = generateId();
-
-      const concept = {
-        id, name, state: 'growing',
-        createdAt: Date.now(), timerStart: null,
-        contentPreview: text.slice(0, 500),
-        contentType: type,
-        contentFilename: filename,
-      };
-      contentStore.set(id, text);
-      concepts.push(concept);
-      saveConcepts(concepts);
-      renderGrid();
-      renderConceptList();
-      selectConcept(concept.id);
-      closeDrawer();
+      let text, type, filename;
+      if (activeTab === 'paste') {
+        text = textarea.value.trim();
+        type = 'text';
+        filename = null;
+      } else {
+        text = uploadedText;
+        type = 'file';
+        filename = uploadedFilename;
+      }
+      if (phTimer) clearInterval(phTimer);
+      onSubmit({ text, type, filename, name: nameInput ? nameInput.value.trim() : null });
     }
 
     textarea.focus();
+    return {
+      destroy() {
+        if (phTimer) clearInterval(phTimer);
+        container.innerHTML = '';
+      }
+    };
+  }
+
+  function startAddConcept() {
+    addTriggerArea.style.overflowY = 'auto';
+    addTriggerArea.innerHTML = '<div class="creation-form"></div>';
+    const form = addTriggerArea.querySelector('.creation-form');
+    
+    buildContentInputUI(form, {
+      showNameField: true,
+      showClipboard: true,
+      onSubmit: ({ text, type, filename, name }) => {
+        if (!name || !text) return;
+        const concepts = loadConcepts();
+        if (concepts.length >= 4) { renderAddTrigger(); return; }
+
+        const id = generateId();
+        const concept = {
+          id, name, state: 'growing',
+          createdAt: Date.now(), timerStart: null,
+          contentPreview: text.slice(0, 500),
+          contentType: type,
+          contentFilename: filename,
+        };
+        contentStore.set(id, text);
+        concepts.push(concept);
+        saveConcepts(concepts);
+        renderGrid(concepts);
+        renderConceptList(concepts);
+        selectConcept(concept.id);
+        closeDrawer();
+      },
+      onCancel: () => {
+        renderAddTrigger();
+      }
+    });
   }
 
   function deleteConcept(id, btnEl) {
@@ -1490,123 +1532,27 @@ const App = (() => {
   function showContentOverlay() {
     primaryControls.style.display = 'none';
     const conceptId = getActiveId();
-    let uploadedText = '';
-    let uploadedFilename = '';
-    let activeTab = 'paste';
-
+    
     const overlay = document.createElement('div');
     overlay.id = 'content-overlay';
-    overlay.innerHTML = `
-      <div class="overlay-tabs">
-        <button class="overlay-tab active" data-tab="paste">Paste</button>
-        <button class="overlay-tab" data-tab="upload">Upload</button>
-      </div>
-      <div class="overlay-panel" data-panel="paste">
-        <textarea class="overlay-textarea" placeholder="Paste content here…"></textarea>
-      </div>
-      <div class="overlay-panel" data-panel="upload" style="display:none">
-        <div class="overlay-dropzone">
-          Drop a file or click to browse<br>
-          <span style="font-size:11px;opacity:0.65">.txt &nbsp; .md &nbsp; .pdf</span>
-        </div>
-        <input type="file" accept=".txt,.md,.pdf" style="display:none">
-        <p class="overlay-dropfeedback"></p>
-      </div>
-      <div class="overlay-footer">
-        <button class="overlay-cancel">Cancel</button>
-        <button class="overlay-extract" disabled>Extract →</button>
-      </div>
-    `;
     primaryControls.insertAdjacentElement('afterend', overlay);
 
-    const tabs      = overlay.querySelectorAll('.overlay-tab');
-    const panels    = overlay.querySelectorAll('.overlay-panel');
-    const textarea  = overlay.querySelector('.overlay-textarea');
-    const dropzone  = overlay.querySelector('.overlay-dropzone');
-    const fileInput = overlay.querySelector('input[type="file"]');
-    const feedback  = overlay.querySelector('.overlay-dropfeedback');
-    const cancelBtn = overlay.querySelector('.overlay-cancel');
-    const extractBtn = overlay.querySelector('.overlay-extract');
-
-    function checkExtractEnabled() {
-      extractBtn.disabled = activeTab === 'paste'
-        ? textarea.value.trim().length === 0
-        : uploadedText.length === 0;
-    }
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        activeTab = tab.dataset.tab;
-        tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === activeTab));
-        panels.forEach(p => { p.style.display = p.dataset.panel === activeTab ? '' : 'none'; });
-        checkExtractEnabled();
-      });
-    });
-
-    textarea.addEventListener('input', checkExtractEnabled);
-
-    dropzone.addEventListener('click', () => fileInput.click());
-    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-    dropzone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropzone.classList.remove('dragover');
-      if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
-    });
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files[0]) processFile(fileInput.files[0]);
-    });
-
-    function processFile(file) {
-      uploadedText = '';
-      uploadedFilename = '';
-      feedback.className = 'overlay-dropfeedback';
-      feedback.textContent = '';
-      extractBtn.disabled = true;
-      _readFile(file,
-        (text, filename) => {
-          uploadedText = text;
-          uploadedFilename = filename;
-          feedback.className = 'overlay-dropfeedback ok';
-          feedback.textContent = `${filename} · ${text.length.toLocaleString()} chars`;
-          checkExtractEnabled();
-        },
-        (errMsg, fallbackText, filename) => {
-          feedback.className = 'overlay-dropfeedback error';
-          feedback.textContent = errMsg;
-          if (fallbackText !== undefined) {
-            uploadedText = fallbackText;
-            uploadedFilename = filename;
-            checkExtractEnabled();
-          }
-        }
-      );
-    }
-
-    cancelBtn.addEventListener('click', hideContentOverlay);
-
-    extractBtn.addEventListener('click', () => {
-      let text, type, filename;
-      if (activeTab === 'paste') {
-        text = textarea.value.trim();
+    buildContentInputUI(overlay, {
+      showNameField: false,
+      showClipboard: false,
+      onSubmit: ({ text, type, filename }) => {
         if (!text) return;
-        type = 'text';
-        filename = null;
-      } else {
-        text = uploadedText;
-        if (!text) return;
-        type = 'file';
-        filename = uploadedFilename;
-      }
-      contentStore.set(conceptId, text);
-      updateActiveConcept({
-        contentPreview: text.slice(0, 500),
-        contentType: type,
-        contentFilename: filename,
-      });
-      overlay.remove();
-      setState('growing');
-      playAnim('emerge', getActiveTileIdx());
+        contentStore.set(conceptId, text);
+        updateActiveConcept({
+          contentPreview: text.slice(0, 500),
+          contentType: type,
+          contentFilename: filename,
+        });
+        overlay.remove();
+        setState('growing');
+        playAnim('emerge', getActiveTileIdx());
+      },
+      onCancel: hideContentOverlay
     });
   }
 
@@ -1670,10 +1616,9 @@ const App = (() => {
 
   // ── 16. Init + restore ─────────────────────────────────────
 
-  // Bus: repair animation on fractured → growing
-  Bus.on('state:change', ({ from, to, tileIdx }) => {
-    if (from === 'fractured' && to === 'growing') playAnim('repair', tileIdx);
-  });
+
+
+
 
   // Migrate legacy single-concept storage
   const legacyState = localStorage.getItem('learnops-state');
