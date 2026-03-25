@@ -55,7 +55,6 @@ const App = (() => {
   const Bus = (() => {
     const L = {};
     return {
-    toggleZenMode,
       on:   (ev, fn) => (L[ev] ??= []).push(fn),
       emit: (ev, d)  => (L[ev]||[]).forEach(fn => fn(d)),
     };
@@ -158,7 +157,6 @@ const App = (() => {
     }
 
     return {
-    toggleZenMode,
       start(tileIdx, fromState, toState) {
         // Cancel any existing task for this tile
         tasks = tasks.filter(t => t.idx !== tileIdx);
@@ -514,7 +512,6 @@ const App = (() => {
 
     textarea.focus();
     return {
-    toggleZenMode,
       destroy() {
         if (phTimer) clearInterval(phTimer);
         container.innerHTML = '';
@@ -838,19 +835,6 @@ const App = (() => {
     setState('actualized');
     playAnim('actualize', getActiveTileIdx());
   }
-  let zenMode = false;
-  function toggleZenMode() {
-    zenMode = !zenMode;
-    const btn = document.getElementById('mode-toggle');
-    if (zenMode) {
-      document.body.classList.add('zen-mode');
-      if(btn) { btn.classList.add('active'); btn.innerText = 'Ops Mode'; }
-    } else {
-      document.body.classList.remove('zen-mode');
-      if(btn) { btn.classList.remove('active'); btn.innerText = 'Zen Mode'; }
-    }
-  }
-
   function fastForward() { timeLeft = 3; }
 
   // ── 16. Init + restore ─────────────────────────────────────
@@ -930,7 +914,6 @@ const App = (() => {
   }
 
   return {
-    toggleZenMode,
     toggleDrawer, openDrawer, closeDrawer,
     selectTile, selectConcept: (id) => { selectConcept(id); closeDrawer(); },
     deleteConcept,
