@@ -794,7 +794,6 @@
 
   <nav class="sidebar-nav">
     <a class="sidebar-nav-item active" href="#">Dashboard</a>
-    <a class="sidebar-nav-item" href="stitch/code.html" target="_blank" style="color: var(--primary);">✨ Final Design Demo</a>
     <a class="sidebar-nav-item" href="#">Library</a>
     <a class="sidebar-nav-item" href="#">Analytics</a>
     <a class="sidebar-nav-item" href="#" onclick="startSettings()">Settings</a>
@@ -869,5 +868,11 @@
 
 <script src="app.js"></script>
 <script src="graph.js"></script>
+
+<!-- Cross-Page Router -->
+<a id="mode-toggle" href="stitch/code.html" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; position:fixed; bottom:24px; right:24px; z-index:2000; background:var(--primary); border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:10px 18px; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; font-weight:800; color:white; box-shadow:0 6px 16px rgba(124,111,205,0.4); transition:all 0.3s cubic-bezier(0.2,0.8,0.2,1);" onmouseover="this.style.transform='translateY(-2px) scale(1.02)'; this.style.boxShadow='0 8px 24px rgba(124,111,205,0.6)'; this.style.color='white';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 6px 16px rgba(124,111,205,0.4)';">
+  Ops Mode 
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+</a>
 </body>
 </html>
