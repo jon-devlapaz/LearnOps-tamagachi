@@ -1,5 +1,7 @@
 // Graph Engine and AI Extraction Component
 
+const GEMINI_MODEL = 'gemini-2.5-flash';
+
 function getGeminiKey() { return localStorage.getItem('gemini_key') || ''; }
 
 const GraphEngine = (() => {
@@ -181,11 +183,19 @@ async function performAIExtraction(text, onSuccess, onError) {
     onError('Extraction paused: Please configure your Gemini API Key in the Settings menu.');
     return;
   }
-  
+
   GraphEngine.init();
   const dbg = document.getElementById('ai-debug-content');
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${key}&alt=sse`;
+  function log(msg) {
+    console.log('[AIExtract]', msg);
+    if(dbg) {
+      dbg.textContent += msg + '\n';
+      dbg.parentElement.scrollTop = dbg.parentElement.scrollHeight;
+    }
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?key=${key}&alt=sse`;
   const prompt = `You are a cognitive extractor analyzing text. Output EXACTLY ONE item per line using ONLY these formats:
 NODE: <Concept Name>
 EDGE: <Source Concept> -> <Target Concept> | <Relationship>
@@ -195,91 +205,221 @@ Do not write markdown, asterisks, or bullet points. Just strict lines starting e
 Text to analyze:
 ${text.slice(0, 10000)}`;
 
+  log(`Model: ${GEMINI_MODEL}`);
+  log(`Text length: ${text.length} chars (sending first ${Math.min(text.length, 10000)})`);
+  log('Sending request...');
+
   try {
-    if(dbg) dbg.textContent += "Connecting to Gemini API...\n";
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
-    
+
+    log(`Response status: ${response.status} ${response.statusText}`);
+    log(`Content-Type: ${response.headers.get('content-type') || '(none)'}`);
+
     if(!response.ok) {
-        if(dbg) dbg.textContent += `API Error: ${response.status} ${response.statusText}\n`;
-        throw new Error("API Error: " + response.statusText);
+      let errBody = '(could not read body)';
+      try { errBody = await response.text(); } catch(_) {}
+      log(`Error body: ${errBody.slice(0, 300)}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    if(dbg) dbg.textContent += "Connection established! Streaming data...\n\n";
+
+    if(!response.body) {
+      throw new Error('response.body is null — streaming not supported in this environment');
+    }
+
+    log('Stream open. Reading chunks...\n');
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    
+
     let streamBuffer = '';
     let textBuffer = '';
+    let chunkCount = 0;
+    let nodeCount = 0;
+    let edgeCount = 0;
 
     while(true) {
       const { done, value } = await reader.read();
       if(done) break;
-      streamBuffer += decoder.decode(value, { stream: true });
-      
+
+      const raw = decoder.decode(value, { stream: true });
+      chunkCount++;
+
+      if(chunkCount <= 3) {
+        log(`--- RAW CHUNK ${chunkCount} ---\n${raw.slice(0, 400)}${raw.length > 400 ? '...(truncated)' : ''}`);
+      }
+
+      streamBuffer += raw;
       let lines = streamBuffer.split('\n\n');
-      streamBuffer = lines.pop(); 
-      
+      streamBuffer = lines.pop();
+
       for(const line of lines) {
-        if(line.startsWith('data: ')) {
-          const rawPayload = line.slice(6);
-          if(rawPayload.trim() === "[DONE]") continue;
+        if(!line.startsWith('data: ')) continue;
+        const rawPayload = line.slice(6).trim();
+        if(rawPayload === '[DONE]') { log('Received [DONE]'); continue; }
 
-          try {
-            const data = JSON.parse(rawPayload);
-            const chunkText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            if(chunkText) {
-              if(dbg) {
-                 dbg.textContent += chunkText;
-                 dbg.parentElement.scrollTop = dbg.parentElement.scrollHeight;
-              }
-              
-              textBuffer += chunkText;
-              let parts = textBuffer.split('\n');
-              textBuffer = parts.pop();
+        try {
+          const data = JSON.parse(rawPayload);
+          const chunkText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if(!chunkText) continue;
 
-              for(let p of parts) {
-                p = p.trim().replace(/\*\*/g, ''); // strip markdown bold hallucination
-                if(p.startsWith('NODE:')) {
-                  GraphEngine.addNode(p.substring(5).trim());
-                } else if(p.startsWith('EDGE:')) {
-                  let split1 = p.substring(5).split('->');
-                  if(split1.length === 2) {
-                    let source = split1[0].trim();
-                    let split2 = split1[1].split('|');
-                    if(split2.length === 2) {
-                      let target = split2[0].trim();
-                      let label = split2[1].trim();
-                      GraphEngine.addEdge(source, target, label);
-                    }
-                  }
+          textBuffer += chunkText;
+          let parts = textBuffer.split('\n');
+          textBuffer = parts.pop();
+
+          for(let p of parts) {
+            p = p.trim().replace(/\*\*/g, '');
+            if(p.startsWith('NODE:')) {
+              const label = p.substring(5).trim();
+              GraphEngine.addNode(label);
+              nodeCount++;
+              log(`NODE(${nodeCount}): ${label}`);
+            } else if(p.startsWith('EDGE:')) {
+              const split1 = p.substring(5).split('->');
+              if(split1.length === 2) {
+                const source = split1[0].trim();
+                const split2 = split1[1].split('|');
+                if(split2.length === 2) {
+                  const target = split2[0].trim();
+                  const edgeLabel = split2[1].trim();
+                  GraphEngine.addEdge(source, target, edgeLabel);
+                  edgeCount++;
+                  log(`EDGE(${edgeCount}): ${source} -> ${target} | ${edgeLabel}`);
                 }
               }
             }
-          } catch(e) {
-             if(dbg) dbg.textContent += `\n[Parse Error JSON Chunk: ${e.message}]\n`;
           }
+        } catch(e) {
+          log(`[JSON parse error: ${e.message}] payload: ${rawPayload.slice(0, 100)}`);
         }
       }
     }
-    
-    if(textBuffer.trim().replace(/\*\*/g, '').startsWith('NODE:')) { 
-      GraphEngine.addNode(textBuffer.trim().replace(/\*\*/g, '').substring(5).trim()); 
+
+    // flush remaining text buffer
+    if(textBuffer.trim()) {
+      const p = textBuffer.trim().replace(/\*\*/g, '');
+      if(p.startsWith('NODE:')) {
+        const label = p.substring(5).trim();
+        GraphEngine.addNode(label);
+        nodeCount++;
+        log(`NODE(${nodeCount}) [flush]: ${label}`);
+      }
     }
-    
+
+    log(`\nStream complete. Chunks: ${chunkCount} | Nodes: ${nodeCount} | Edges: ${edgeCount}`);
+
     setTimeout(() => {
       GraphEngine.stop();
       onSuccess(GraphEngine.getGraph());
     }, 1500);
 
-  } catch (err) {
-    if(dbg) dbg.textContent += `\n\nFatal Error: ${err.message}\n`;
-    setTimeout(() => {
-        GraphEngine.stop();
-        onError(err.message);
-    }, 5000);
+  } catch(err) {
+    log(`\nFATAL: ${err.message}`);
+    GraphEngine.stop();
+    onError(err.message);
   }
+}
+
+function startSettings() {
+  const triggerArea = document.getElementById('add-trigger-area');
+  triggerArea.style.overflowY = 'auto';
+
+  const key = getGeminiKey();
+  const masked = key ? key.slice(0, 6) + '••••••••••••••••' : '';
+
+  const eyeOpen = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  const eyeOff  = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+
+  triggerArea.innerHTML = `
+    <div class="settings-panel">
+      <div class="settings-header">
+        <div class="settings-header-text">
+          <h3>Settings</h3>
+          <p class="settings-subtext">Configure your neurocognitive pipeline and integration hooks.</p>
+        </div>
+        <button class="settings-close-btn" onclick="App.closeDrawer(); App.renderAddTrigger();" aria-label="Close settings">×</button>
+      </div>
+
+      <div class="settings-box">
+        <div class="settings-section-header">
+          <h4>Gemini Connection</h4>
+          <span class="settings-dot" id="settings-dot"></span>
+        </div>
+        <div class="settings-input-wrap">
+          <input type="password" id="settings-key-input" class="settings-input" placeholder="Paste Gemini API Key" value="${masked}" autocomplete="off" spellcheck="false">
+          <button class="settings-eye" id="settings-eye" type="button" aria-label="Toggle key visibility">${eyeOpen}</button>
+        </div>
+        <a class="settings-helper" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Get your free Gemini API key →</a>
+        <div class="settings-actions">
+          <button id="settings-key-save" class="settings-save">Save Key</button>
+          <button id="settings-key-test" class="settings-test">Test Connection</button>
+        </div>
+        <div id="settings-api-status" class="settings-status"></div>
+      </div>
+    </div>
+  `;
+
+  App.openDrawer();
+
+  const inp       = triggerArea.querySelector('#settings-key-input');
+  const eyeBtn    = triggerArea.querySelector('#settings-eye');
+  const dot       = triggerArea.querySelector('#settings-dot');
+  const saveBtn   = triggerArea.querySelector('#settings-key-save');
+  const testBtn   = triggerArea.querySelector('#settings-key-test');
+  const statusBox = triggerArea.querySelector('#settings-api-status');
+
+  eyeBtn.addEventListener('click', () => {
+    const isRevealed = inp.type === 'text';
+    inp.type = isRevealed ? 'password' : 'text';
+    eyeBtn.innerHTML = isRevealed ? eyeOpen : eyeOff;
+    eyeBtn.classList.toggle('revealed', !isRevealed);
+  });
+
+  saveBtn.addEventListener('click', () => {
+    const val = inp.value.trim();
+    if (val && !val.includes('••••')) {
+      localStorage.setItem('gemini_key', val);
+      dot.classList.remove('connected', 'error');
+      statusBox.textContent = 'Key saved.';
+      statusBox.style.color = 'var(--text-sub)';
+    }
+  });
+
+  testBtn.addEventListener('click', async () => {
+    const currentKey = getGeminiKey();
+    if (!currentKey) {
+      dot.classList.remove('connected');
+      dot.classList.add('error');
+      statusBox.textContent = 'No key saved.';
+      statusBox.style.color = 'var(--danger)';
+      return;
+    }
+
+    testBtn.disabled = true;
+    testBtn.innerHTML = `<span class="settings-spinner"></span>Testing…`;
+    statusBox.textContent = '';
+
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${currentKey}`;
+      const payload = { contents: [{ parts: [{ text: 'Reply OK' }] }] };
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await res.json();
+      dot.classList.remove('error');
+      dot.classList.add('connected');
+      statusBox.textContent = 'Connected successfully.';
+      statusBox.style.color = 'var(--success)';
+    } catch(err) {
+      dot.classList.remove('connected');
+      dot.classList.add('error');
+      statusBox.textContent = err.message;
+      statusBox.style.color = 'var(--danger)';
+    } finally {
+      testBtn.disabled = false;
+      testBtn.textContent = 'Test Connection';
+    }
+  });
 }
