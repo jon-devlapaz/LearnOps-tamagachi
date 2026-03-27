@@ -35,6 +35,11 @@ const App = (() => {
   const drawer              = document.getElementById('drawer');
   const conceptListEl       = document.getElementById('concept-list');
   const addTriggerArea      = document.getElementById('add-trigger-area');
+  const heroInfo            = document.getElementById('hero-info');
+  const drillUi             = document.getElementById('drill-ui');
+  const chatHistory         = document.getElementById('chat-history');
+  const chatInput           = document.getElementById('chat-input');
+  const drillTitle          = document.getElementById('drill-title');
 
   // Transient content store — full text, NOT in localStorage. Keyed by concept ID.
   const contentStore = new Map();
@@ -320,7 +325,9 @@ const App = (() => {
         <button class="concept-delete" onclick="App.deleteConcept('${c.id}',this)">×</button>`;
       item.addEventListener('click', e => {
         if (e.target.classList.contains('concept-delete')) return;
+        showDashboard();
         selectConcept(c.id);
+        if (c.graphData) showMapView(c);
         closeDrawer();
       });
       conceptListEl.appendChild(item);
@@ -612,40 +619,34 @@ const App = (() => {
           setTimeout(() => { if(extractOverlay.parentNode) extractOverlay.parentNode.removeChild(extractOverlay); }, 400);
         }
 
-        function onPhaseChange(phase) {
-          extractOverlay.dataset.phase = String(phase);
-          if(phase === 2) {
-            extractOverlay.querySelector('.extract-label').textContent = name;
-          }
-          if(phase === 3) {
-            extractOverlay.querySelector('.extract-label').textContent = 'Mapped';
-            const ring = document.createElement('div');
-            ring.className = 'extract-complete-ring';
-            extractOverlay.appendChild(ring);
+        async function runExtraction() {
+          try {
+            extractOverlay.querySelector('.extract-label').textContent = 'Mapping knowledge...';
+            const jsonPayload = await window.AIService.generateKnowledgeMap(text);
+
+            removeOverlay();
+            const concept = {
+              id, name, state: 'growing',
+              createdAt: Date.now(), timerStart: null,
+              contentPreview: text.slice(0, 500),
+              contentType: type,
+              contentFilename: filename,
+              graphData: jsonPayload
+            };
+            contentStore.set(id, text);
+            concepts.push(concept);
+            saveConcepts(concepts);
+            renderGrid(concepts);
+            renderConceptList(concepts);
+            selectConcept(concept.id);
+            closeDrawer();
+          } catch (err) {
+            removeOverlay();
+            alert('Extraction Failed: ' + err.message);
           }
         }
 
-        performAIExtraction(text, (graphData) => {
-          removeOverlay();
-          const concept = {
-            id, name, state: 'growing',
-            createdAt: Date.now(), timerStart: null,
-            contentPreview: text.slice(0, 500),
-            contentType: type,
-            contentFilename: filename,
-            graphData: graphData
-          };
-          contentStore.set(id, text);
-          concepts.push(concept);
-          saveConcepts(concepts);
-          renderGrid(concepts);
-          renderConceptList(concepts);
-          selectConcept(concept.id);
-          closeDrawer();
-        }, (errMsg) => {
-          removeOverlay();
-          alert('Extraction Failed: ' + errMsg);
-        }, onPhaseChange);
+        runExtraction();
       },
       onCancel: () => {
         renderAddTrigger();
@@ -673,12 +674,17 @@ const App = (() => {
   function selectTile(tileIdx) {
     const concepts = loadConcepts();
     const concept  = concepts[tileIdx];
-    if (concept)  { selectConcept(concept.id); }
-    else          { openDrawer(); }
+    if (concept) {
+      selectConcept(concept.id);
+      if (concept.graphData) showMapView(concept);
+    } else {
+      openDrawer();
+    }
   }
 
   function selectConcept(id) {
     hideContentOverlay();
+    hideMapView();
     setActiveId(id);
     const concept = loadConcepts().find(c => c.id === id);
     if (!concept) return;
@@ -734,15 +740,41 @@ const App = (() => {
 
   function applyControlsForState(state, concept) {
     stopTimer();
-    removeRestartButton();
-    document.getElementById('btn-drill').textContent = '3. Drill (Recall)';
+    const btnDrill = document.getElementById('btn-drill');
+    if (btnDrill) btnDrill.textContent = '3. Drill (Recall)';
     showControls(false,false,false,false,false);
+
+    // Toggle the new floating Consolidate button over the grid
+    const floatBtn = document.getElementById('btn-consolidate-float');
+    if (floatBtn) {
+      if (state === 'growing' && concept.drilled) {
+        
+        // Dynamically compute exact crystal tip coordinates
+        const idx = getActiveTileIdx();
+        const base = [
+          { x: 70, y: 45 },
+          { x: 0,  y: 85 },
+          { x: 140, y: 85 },
+          { x: 70, y: 125 }
+        ];
+        if (idx !== null && base[idx]) {
+          floatBtn.style.left = (base[idx].x + 70) + 'px';
+          floatBtn.style.top  = (base[idx].y + 8) + 'px'; // +28px padding - 20px crystal height
+        }
+
+        floatBtn.style.display = 'flex';
+        floatBtn.classList.add('show');
+      } else {
+        floatBtn.style.display = 'none';
+        floatBtn.classList.remove('show');
+      }
+    }
 
     if      (state==='instantiated') { showControls(true,false,false,false,false); setButtons(true,false); }
     else if (state==='growing')      { showControls(true,false,true,false,false);  setButtons(false,true); }
     else if (state==='fractured') {
       showControls(true,false,false,false,false); setButtons(false,true);
-      document.getElementById('btn-drill').textContent = '3. Drill (Repair)';
+      if (btnDrill) btnDrill.textContent = '3. Drill (Repair)';
     }
     else if (state==='hibernating') {
       let remaining = 24*60*60;
@@ -755,25 +787,25 @@ const App = (() => {
       showControls(false,false,false,true,true);
       startTimer();
     }
-    else if (state==='actualized') { showRestartButton(); }
   }
 
   function showControls(primary, drill, consolidate, timer, dev) {
-    primaryControls.style.display     = primary     ? 'flex'  : 'none';
-    drillControls.style.display       = drill       ? 'flex'  : 'none';
-    consolidateControls.style.display = consolidate ? 'flex'  : 'none';
-    timerDisplay.style.display        = timer       ? 'block' : 'none';
-    devBtn.style.display              = dev         ? 'block' : 'none';
+    if(primaryControls) primaryControls.style.display     = primary     ? 'flex'  : 'none';
+    if(drillControls) drillControls.style.display       = drill       ? 'flex'  : 'none';
+    if(consolidateControls) consolidateControls.style.display = consolidate ? 'flex'  : 'none';
+    if(timerDisplay) timerDisplay.style.display        = timer       ? 'block' : 'none';
+    if(devBtn) devBtn.style.display              = dev         ? 'block' : 'none';
   }
   function setButtons(ex, dr) {
-    document.getElementById('btn-extract').disabled = !ex;
-    document.getElementById('btn-drill').disabled   = !dr;
+    const btnEx = document.getElementById('btn-extract');
+    const btnDr = document.getElementById('btn-drill');
+    if (btnEx) btnEx.disabled = !ex;
+    if (btnDr) btnDr.disabled   = !dr;
   }
 
   function showEmptyState() {
     hideContentOverlay();
     stopTimer();
-    removeRestartButton();
     conceptLabelEl.textContent = '';
     titleEl.textContent = 'tink';
     descEl.textContent  = 'Add your first tink.';
@@ -806,28 +838,38 @@ const App = (() => {
     if (file.size > 2 * 1024 * 1024) {
       onError('File too large. Maximum size is 2MB.'); return;
     }
-    const reader = new FileReader();
+
     if (ext === 'pdf') {
-      reader.onload = e => {
-        const bytes = new Uint8Array(e.target.result);
-        let raw = '';
-        for (let i = 0; i < bytes.length; i++) {
-          if (bytes[i] >= 32 && bytes[i] < 128) raw += String.fromCharCode(bytes[i]);
-        }
-        const matches = raw.match(/BT[\s\S]*?ET/g) || [];
-        let extracted = matches.join(' ')
-          .replace(/\(([^)]+)\)/g, '$1 ')
-          .replace(/[^a-zA-Z0-9 \n.,!?;:'"()-]/g, ' ')
-          .replace(/\s+/g, ' ').trim();
-        if (extracted.length < 50) {
-          const fallback = '[PDF attached — extraction pending]';
-          onError('Could not extract text from this PDF. Try pasting the content instead.', fallback, file.name);
-        } else {
-          onSuccess(extracted, file.name);
+      // Defer to pdf.js for robust client-side extraction natively in the browser
+      if (typeof pdfjsLib === 'undefined') {
+        onError('PDF engine failed to load. Please check your connection.'); return;
+      }
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+      const fileReader = new FileReader();
+      fileReader.onload = async (e) => {
+        try {
+          const pdfData = new Uint8Array(e.target.result);
+          const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+          
+          let extractedText = '';
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            extractedText += textContent.items.map(item => item.str).join(' ') + '\\n';
+          }
+
+          if (extractedText.trim().length < 50) {
+            throw new Error("Scanned image or empty PDF.");
+          }
+          onSuccess(extractedText.trim(), file.name);
+        } catch (err) {
+          onError('Could not natively extract text from this PDF. Try pasting the content manually.', '[PDF Parsing Error]', file.name);
         }
       };
-      reader.readAsArrayBuffer(file);
+      fileReader.readAsArrayBuffer(file);
     } else {
+      const reader = new FileReader();
       reader.onload = e => onSuccess(e.target.result, file.name);
       reader.readAsText(file);
     }
@@ -842,12 +884,17 @@ const App = (() => {
   }
 
   function showContentOverlay() {
-    primaryControls.style.display = 'none';
+    if (primaryControls) primaryControls.style.display = 'none';
     const conceptId = getActiveId();
     
     const overlay = document.createElement('div');
     overlay.id = 'content-overlay';
-    primaryControls.insertAdjacentElement('afterend', overlay);
+    
+    if (primaryControls) {
+      primaryControls.insertAdjacentElement('afterend', overlay);
+    } else {
+      document.querySelector('.hero-info').appendChild(overlay);
+    }
 
     buildContentInputUI(overlay, {
       showNameField: false,
@@ -926,7 +973,207 @@ const App = (() => {
   }
   function fastForward() { timeLeft = 3; }
 
-  // ── 16. Init + restore ─────────────────────────────────────
+  // ── 16. Map View UI ────────────────────────────────────────
+
+  function showMapView(concept) {
+    const mapView = document.getElementById('map-view');
+    const mapContent = document.getElementById('map-content');
+    const heroCard = document.querySelector('.hero-card');
+
+    if (!concept || !concept.graphData) return;
+
+    let data;
+    try {
+      data = typeof concept.graphData === 'string' ? JSON.parse(concept.graphData) : concept.graphData;
+    } catch(e) {
+      console.error("Invalid JSON graphData", e);
+      return;
+    }
+
+    if (!data.metadata) {
+      data.metadata = {
+        source_title: concept.name,
+        core_thesis: "Raw visual structure. Deep Knowledge Map extraction pending or failed.",
+        architecture_type: "prototype",
+        difficulty: "unknown"
+      };
+    }
+
+    const meta = data.metadata || {};
+    const backbone = data.backbone || [];
+    const clusters = data.clusters || [];
+    const rels = data.relationships || { domain_mechanics: [], learning_prerequisites: [] };
+    const fws = data.frameworks || [];
+
+    let html = '<div class="map-zone zone-1">';
+    html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; margin-right: 48px;">';
+    html += `<div class="map-header-title" style="margin-bottom: 0;">${escHtml(meta.source_title || concept.name)}</div>`;
+    
+    if (concept.state === 'growing' || concept.state === 'fractured') {
+      const btnText = concept.state === 'fractured' ? '✦ Repair (Drill)' : '✦ Start Drill';
+      html += `<button class="btn-start-drill" onclick="App.startDrillFromMap()" title="Interactive Drill Session">${btnText}</button>`;
+    }
+    html += '</div>';
+
+    html += `<div class="map-core-thesis">${escHtml(meta.core_thesis || '')}</div>`;
+    
+    html += '<div class="map-badges">';
+    if (meta.architecture_type) html += `<div class="map-badge arch">${escHtml(meta.architecture_type.replace(/_/g, ' '))}</div>`;
+    if (meta.difficulty) html += `<div class="map-badge diff">${escHtml(meta.difficulty)}</div>`;
+    html += '</div>';
+
+    if (meta.low_density) {
+      html += '<div class="map-low-density">Lightweight map — source had limited content.</div>';
+    }
+
+    html += '</div>';
+
+    if (backbone.length > 0) {
+      html += '<div class="map-zone zone-2">';
+      html += '<div class="map-section-title">Backbone Principles</div>';
+      backbone.forEach(b => {
+        html += `<div class="map-backbone-item">${escHtml(b.principle)}</div>`;
+      });
+      html += '</div>';
+    }
+
+    if (clusters.length > 0) {
+      html += '<div class="map-zone zone-3">';
+      html += '<div class="map-section-title">Clusters</div>';
+      clusters.forEach((c, idx) => {
+        const isFirst = idx === 0 ? 'expanded' : '';
+        html += `
+          <div class="map-cluster-card ${isFirst}" onclick="App.toggleCluster(this)">
+            <div class="map-cluster-header">
+              <span>${escHtml(c.label)}</span>
+              <span class="map-cluster-icon">▾</span>
+            </div>
+            <div class="map-cluster-body" onclick="event.stopPropagation()">
+              <div class="map-cluster-desc">${escHtml(c.description || '')}</div>
+        `;
+        const subnodes = c.subnodes || [];
+        subnodes.forEach(sub => {
+           const color = sub.drill_status ? 'var(--primary)' : '#c4c2d4';
+           html += `
+             <div class="map-subnode-row">
+               <div class="map-subnode-indicator" style="background:${color};"></div>
+               <div class="map-subnode-content">
+                 <div class="map-subnode-label">${escHtml(sub.label)}</div>
+                 <div class="map-subnode-mech">${escHtml(sub.mechanism || '')}</div>
+               </div>
+             </div>
+           `;
+        });
+        html += `</div></div>`;
+      });
+      html += '</div>';
+    }
+
+    const domMechs = rels.domain_mechanics || [];
+    const lrnPreqs = rels.learning_prerequisites || [];
+    if (domMechs.length > 0 || lrnPreqs.length > 0) {
+      html += '<div class="map-zone zone-4">';
+      html += '<div class="map-section-title">Connections</div>';
+      domMechs.forEach(rel => {
+         const txt = rel.mechanism || rel.rationale || '';
+         html += `<div class="map-cx-item"><strong>Domain:</strong> ${escHtml(txt)}</div>`;
+      });
+      lrnPreqs.forEach(rel => {
+         const txt = rel.mechanism || rel.rationale || '';
+         html += `<div class="map-cx-item"><strong>Prerequisite:</strong> ${escHtml(txt)}</div>`;
+      });
+      html += '</div>';
+    }
+
+    if (fws.length > 0) {
+      html += '<div class="map-zone zone-5">';
+      html += '<div class="map-section-title">Transferable Frameworks</div>';
+      fws.forEach(fw => {
+         html += `<div class="map-fw-card">
+           <div class="map-fw-name">${escHtml(fw.name)}</div>
+           <div class="map-fw-state">${escHtml(fw.statement)}</div>
+         </div>`;
+      });
+      html += '</div>';
+    }
+
+    mapContent.innerHTML = html;
+    
+    heroCard.style.display = 'none';
+    mapView.classList.add('visible');
+  }
+
+  function hideMapView() {
+    const mapView = document.getElementById('map-view');
+    const heroCard = document.querySelector('.hero-card');
+    if (mapView) mapView.classList.remove('visible');
+    if (heroCard) heroCard.style.display = 'flex';
+  }
+
+  function setNavActive(id) {
+    document.querySelectorAll('.sidebar-nav-item').forEach(n => n.classList.remove('active'));
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+  }
+
+  function showDashboard() {
+    setNavActive('nav-dashboard');
+    const libraryView = document.getElementById('library-view');
+    const mapView     = document.getElementById('map-view');
+    const heroCard    = document.querySelector('.hero-card');
+    
+    if (libraryView) libraryView.classList.remove('visible');
+    if (mapView) mapView.classList.remove('visible');
+    if (heroCard) heroCard.style.display = 'flex';
+  }
+
+  function showLibrary() {
+    setNavActive('nav-library');
+    const libraryView = document.getElementById('library-view');
+    const heroCard    = document.querySelector('.hero-card');
+    const content     = document.getElementById('library-content');
+
+    const concepts = loadConcepts().filter(c => c.graphData);
+
+    if (concepts.length === 0) {
+      content.innerHTML = '<p class="library-empty">No extracted knowledge maps yet. Add a concept to get started.</p>';
+    } else {
+      content.innerHTML = concepts.map(c => {
+        let pretty = c.graphData;
+        try { pretty = JSON.stringify(JSON.parse(c.graphData), null, 2); } catch {}
+        return `
+          <div class="library-card">
+            <div class="library-card-header">
+              <span class="library-card-name">${escHtml(c.name)}</span>
+              <span class="library-card-state">${c.state}</span>
+            </div>
+            <pre class="library-card-json">${escHtml(pretty)}</pre>
+          </div>`;
+      }).join('');
+    }
+
+    if (heroCard) heroCard.style.display = 'none';
+    libraryView.classList.add('visible');
+    closeDrawer();
+  }
+
+  function hideLibrary() {
+    const libraryView = document.getElementById('library-view');
+    const heroCard    = document.querySelector('.hero-card');
+    if (libraryView) libraryView.classList.remove('visible');
+    if (heroCard)    heroCard.style.display = 'flex';
+  }
+
+  function toggleCluster(el) {
+    const isExpanded = el.classList.contains('expanded');
+    const parent = el.parentElement;
+    parent.querySelectorAll('.map-cluster-card').forEach(c => c.classList.remove('expanded'));
+    if (!isExpanded) {
+      el.classList.add('expanded');
+    }
+  }
+
+  // ── 17. Init + restore ─────────────────────────────────────
 
 
 
@@ -1002,15 +1249,218 @@ const App = (() => {
     renderGrid(); // re-render to apply .selected class
   }
 
+  let drillState = { active: false, step: 0, script: [] };
+  const SIMULATED_SCRIPT = [
+    { role: 'ai', text: "Let's test your understanding. Explain this concept in your own words." },
+    { role: 'wait' },
+    { role: 'ai', text: "Good start. What specific mechanisms are involved here?" },
+    { role: 'wait' },
+    { role: 'ai', text: "Exactly. Finally, what is the ultimate outcome or product?" },
+    { role: 'wait' },
+    { role: 'ai', text: "Correct. You've demonstrated solid recall." },
+    { role: 'finish', result: 'growing' }
+  ];
+
+  function startDrill() {
+    const concept = getActiveConcept();
+    if (!concept || (concept.state !== 'growing' && concept.state !== 'fractured')) return;
+    
+    drillState.active = true;
+    drillState.step = 0;
+    drillState.script = SIMULATED_SCRIPT;
+    
+    if (heroInfo) heroInfo.style.display = 'none';
+    if (drillUi) drillUi.style.display = 'flex';
+    if (chatHistory) chatHistory.innerHTML = '';
+    if (chatInput) {
+      chatInput.value = '';
+      chatInput.disabled = true;
+    }
+    if (drillTitle) drillTitle.textContent = `Drilling: ${concept.name}`;
+    
+    advanceDrill();
+  }
+
+  function cancelDrill() {
+    drillState.active = false;
+    if (heroInfo) heroInfo.style.display = 'block';
+    if (drillUi) drillUi.style.display = 'none';
+    const concept = getActiveConcept();
+    if (concept) applyControlsForState(concept.state, concept);
+  }
+
+  function advanceDrill() {
+    if (!drillState.active) return;
+    const step = drillState.script[drillState.step];
+    if (!step) return;
+
+    if (step.role === 'ai') {
+      if (chatInput) chatInput.disabled = true;
+      setTimeout(() => {
+        if (!drillState.active) return;
+        appendBubble('ai', step.text);
+        drillState.step++;
+        advanceDrill();
+      }, 600);
+    } 
+    else if (step.role === 'wait') {
+      if (chatInput) {
+        chatInput.disabled = false;
+        chatInput.focus();
+      }
+    }
+    else if (step.role === 'finish') {
+      if (chatInput) chatInput.disabled = true;
+      setTimeout(() => {
+        if (!drillState.active) return;
+        cancelDrill();
+        
+        // Mark concept as drilled so the Consolidate button dynamically appears!
+        updateActiveConcept({ drilled: true });
+
+        const fromFractured = getActiveConcept()?.state === 'fractured';
+        setState(step.result); // sets to 'growing'
+        if (fromFractured) playAnim('repair', getActiveTileIdx());
+      }, 1500);
+    }
+  }
+
+  function appendBubble(role, text) {
+    if (!chatHistory) return;
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${role}`;
+    bubble.textContent = text;
+    chatHistory.appendChild(bubble);
+    setTimeout(() => {
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }, 50);
+  }
+
+  if (chatInput) {
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text) return;
+        
+        appendBubble('user', text);
+        chatInput.value = '';
+        chatInput.disabled = true;
+        
+        drillState.step++;
+        advanceDrill();
+      }
+    });
+  }
+
   return {
     toggleDrawer, openDrawer, closeDrawer,
+    cancelDrill, startDrill, startDrillFromMap: () => { hideMapView(); startDrill(); },
     selectTile, selectConcept: (id) => { selectConcept(id); closeDrawer(); },
     deleteConcept,
     startAddConcept,
     renderAddTrigger,
     extract, drill, drillFail, drillPass, consolidate,
     fastForward,
+    hideMapView, toggleCluster,
+    showLibrary, hideLibrary, showDashboard
   };
 
 })();
 window.App = App;
+
+function startSettings() {
+  const triggerArea = document.getElementById('add-trigger-area');
+  triggerArea.style.overflowY = 'auto';
+  triggerArea.innerHTML = `
+    <div class="settings-panel">
+      <div class="settings-header">
+        <div class="settings-header-text">
+          <h3>Settings</h3>
+          <p class="settings-subtext">Configure your pipeline integrations.</p>
+        </div>
+        <button class="settings-close-btn" onclick="App.closeDrawer(); App.renderAddTrigger();" aria-label="Close settings">×</button>
+      </div>
+
+      <div class="settings-box">
+        <div class="settings-section-header">
+          <h4>Backend</h4>
+          <span class="settings-dot" id="settings-dot"></span>
+        </div>
+        <p class="settings-subtext">Start the server with <code>uvicorn main:app --reload</code>.</p>
+        <div class="settings-actions">
+          <button id="settings-test-btn" class="settings-test">Test Connection</button>
+        </div>
+        <div id="settings-status" class="settings-status"></div>
+      </div>
+
+      <div class="settings-box" id="key-box" style="margin-top:20px; display:none;">
+        <div class="settings-section-header">
+          <h4>Gemini API Key</h4>
+        </div>
+        <p class="settings-subtext">No server key detected. Enter your own to enable extraction.</p>
+        <div class="settings-input-wrap">
+          <input type="password" id="settings-key-input" class="settings-input" placeholder="Paste Gemini API key" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="settings-actions">
+          <button id="settings-key-save" class="settings-save">Save Key</button>
+        </div>
+        <div id="settings-key-status" class="settings-status"></div>
+      </div>
+
+    </div>
+  `;
+
+  App.openDrawer();
+
+  const dot       = triggerArea.querySelector('#settings-dot');
+  const testBtn   = triggerArea.querySelector('#settings-test-btn');
+  const statusBox = triggerArea.querySelector('#settings-status');
+  const keyBox    = triggerArea.querySelector('#key-box');
+  const keyInput  = triggerArea.querySelector('#settings-key-input');
+  const keySave   = triggerArea.querySelector('#settings-key-save');
+  const keyStatus = triggerArea.querySelector('#settings-key-status');
+
+  // Pre-fill saved key if present
+  const saved = localStorage.getItem('gemini_key');
+  if (saved) keyInput.value = saved;
+
+  keySave.addEventListener('click', () => {
+    const val = keyInput.value.trim();
+    if (!val) return;
+    localStorage.setItem('gemini_key', val);
+    keyStatus.textContent = 'Key saved.';
+    keyStatus.style.color = 'var(--success)';
+  });
+
+  // Test connection and reveal key input only if server has no key of its own
+  async function testConnection() {
+    testBtn.disabled = true;
+    testBtn.textContent = 'Testing…';
+    try {
+      const res = await fetch('/api/health');
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const data = await res.json();
+      dot.classList.add('connected');
+      dot.classList.remove('error');
+      if (data.server_key_configured) {
+        statusBox.textContent = 'Backend connected. Server key active.';
+        keyBox.style.display = 'none';
+      } else {
+        statusBox.textContent = 'Backend connected. No server key — use your own below.';
+        keyBox.style.display = 'block';
+      }
+      statusBox.style.color = 'var(--success)';
+    } catch {
+      dot.classList.add('error');
+      dot.classList.remove('connected');
+      statusBox.textContent = 'Cannot reach backend. Is uvicorn running?';
+      statusBox.style.color = 'var(--danger)';
+    } finally {
+      testBtn.disabled = false;
+      testBtn.textContent = 'Test Connection';
+    }
+  }
+
+  testBtn.addEventListener('click', testConnection);
+}

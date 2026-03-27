@@ -3,3 +3,9 @@
 
 # macOS
 .DS_Store
+
+# Python
+.env
+__pycache__/
+*.pyc
+.venv/
