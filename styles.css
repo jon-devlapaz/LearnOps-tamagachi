@@ -874,15 +874,21 @@
       .hero-card {
         flex-direction: column;
         gap: 8px;
-        padding: 52px 40px 40px; /* top padding clears the header */
+        padding: 52px 20px 24px; /* safe padding for 320px phones */
         margin: 0;
         border-radius: 24px;
         box-shadow: var(--shadow-card);
         background: var(--surface-card);
         position: relative;
+        width: 100%;
+        box-sizing: border-box;
       }
       .hero-info { text-align: center; }
       #grid-container { margin: 10px auto 16px; }
+      
+      p.desc { font-size: 19px; margin: 8px 0 20px; }
+      h2 { font-size: 9.5px; }
+      .drill-ui { max-width: 100%; width: 100%; height: auto; min-height: 280px; }
     }
 
     /* ── 14. Extraction Overlay ───── */
@@ -1110,9 +1116,9 @@
     .map-fw-name { font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 6px; }
     .map-fw-state { font-size: 13px; color: var(--text-sub); line-height: 1.4; }
 
-    /* Mobile adjustments for map view */
+    /* Mobile adjustments for map and library views */
     @media (max-width: 899px) {
-      .map-view { padding: 56px 24px 24px; border-radius: 24px; position: absolute; }
+      .map-view, .library-view { padding: 56px 24px 24px; border-radius: 24px; position: absolute; }
       .map-close-btn { top: 16px; right: 16px; }
       .map-core-thesis { font-size: 17px; }
     }
