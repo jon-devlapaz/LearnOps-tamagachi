@@ -14,7 +14,15 @@ export function generateId() {
 }
 
 export function loadConcepts() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+  try { 
+    let arr = JSON.parse(localStorage.getItem(STORE_KEY)) || []; 
+    // Migration: fix any concepts saved with invalid 'mapped' state during Library testing
+    arr = arr.map(c => {
+      if (c.state === 'mapped') c.state = 'growing';
+      return c;
+    });
+    return arr;
+  }
   catch { return []; }
 }
 

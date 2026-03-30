@@ -1,11 +1,11 @@
 import { Bus } from './bus.js';
 import { GEO, easeInOutCubic, interpCoords, coordsToPoints } from './geo.js';
 import { Morph, crystalPolygons } from './morph.js';
-import { escHtml, mountKnowledgeGraph } from './graph-view.js';
-import { 
-  STATES, generateId, loadConcepts, saveConcepts, 
-  getActiveId, setActiveId, getActiveConcept, 
-  getActiveTileIdx, updateActiveConcept, contentStore 
+import { escHtml, mountKnowledgeGraph } from './graph-view.js?v=2';
+import {
+  STATES, generateId, loadConcepts, saveConcepts,
+  getActiveId, setActiveId, getActiveConcept,
+  getActiveTileIdx, updateActiveConcept, contentStore
 } from './store.js';
 
 import {
@@ -23,22 +23,22 @@ const App = (() => {
 
   // ── 7. Animation helpers ───────────────────────────────────
   const ANIM_CLASSES = {
-    emerge:'anim-emerge', crack:'anim-crack', cocoon:'anim-cocoon',
-    actualize:'anim-actualize', repair:'anim-repair',
+    emerge: 'anim-emerge', crack: 'anim-crack', cocoon: 'anim-cocoon',
+    actualize: 'anim-actualize', repair: 'anim-repair',
   };
 
   function playAnim(name, tileIdx) {
     const cls = ANIM_CLASSES[name];
     if (!cls) return;
-    const el = document.getElementById('crystal-anim-'+tileIdx);
+    const el = document.getElementById('crystal-anim-' + tileIdx);
     if (!el) return;
     function done() {
       el.classList.remove(cls);
-      el.removeEventListener('animationend',    done);
+      el.removeEventListener('animationend', done);
       el.removeEventListener('animationcancel', done);
     }
     Object.values(ANIM_CLASSES).forEach(c => el.classList.remove(c));
-    el.addEventListener('animationend',    done);
+    el.addEventListener('animationend', done);
     el.addEventListener('animationcancel', done);
     el.classList.add(cls);
   }
@@ -79,7 +79,7 @@ const App = (() => {
 
   function refreshPolygonRefs(tileIdx) {
     crystalPolygons[tileIdx] = POLYGON_IDS.map(id =>
-      document.getElementById('c'+tileIdx+'-'+id)
+      document.getElementById('c' + tileIdx + '-' + id)
     );
   }
 
@@ -88,12 +88,12 @@ const App = (() => {
     const activeId = getActiveId();
 
     tileEls.forEach((tileEl, idx) => {
-      const concept   = concepts[idx] || null;
+      const concept = concepts[idx] || null;
       const isSelected = concept && concept.id === activeId;
-      const isEmpty   = !concept;
+      const isEmpty = !concept;
 
       tileEl.setAttribute('class', 'tile-group' +
-        (isEmpty    ? ' empty'    : '') +
+        (isEmpty ? ' empty' : '') +
         (isSelected ? ' selected' : ''));
 
       if (isEmpty) {
@@ -107,9 +107,9 @@ const App = (() => {
   }
 
   // ── 10. Drawer ─────────────────────────────────────────────
-  function openDrawer()   { drawer.dataset.open='true';  document.body.dataset.drawerOpen='true';  if (drawerToggle) drawerToggle.setAttribute('aria-expanded','true'); }
-  function closeDrawer()  { drawer.dataset.open='false'; document.body.dataset.drawerOpen='false'; if (drawerToggle) drawerToggle.setAttribute('aria-expanded','false'); }
-  function toggleDrawer() { drawer.dataset.open==='true' ? closeDrawer() : openDrawer(); }
+  function openDrawer() { drawer.dataset.open = 'true'; document.body.dataset.drawerOpen = 'true'; if (drawerToggle) drawerToggle.setAttribute('aria-expanded', 'true'); }
+  function closeDrawer() { drawer.dataset.open = 'false'; document.body.dataset.drawerOpen = 'false'; if (drawerToggle) drawerToggle.setAttribute('aria-expanded', 'false'); }
+  function toggleDrawer() { drawer.dataset.open === 'true' ? closeDrawer() : openDrawer(); }
 
   if (window.innerWidth >= 900) openDrawer();
 
@@ -119,7 +119,7 @@ const App = (() => {
     const activeId = getActiveId();
     conceptListEl.innerHTML = '';
 
-    concepts.forEach((c,i) => {
+    concepts.forEach((c, i) => {
       const item = document.createElement('div');
       item.className = 'concept-item' + (c.id === activeId ? ' active' : '');
       item.innerHTML = `
@@ -182,15 +182,15 @@ const App = (() => {
       </div>
     `;
 
-    const tabs      = container.querySelectorAll('.overlay-tab');
-    const panels    = container.querySelectorAll('.overlay-panel');
-    const textarea  = container.querySelector('.overlay-textarea');
-    const dropzone  = container.querySelector('.overlay-dropzone');
+    const tabs = container.querySelectorAll('.overlay-tab');
+    const panels = container.querySelectorAll('.overlay-panel');
+    const textarea = container.querySelector('.overlay-textarea');
+    const dropzone = container.querySelector('.overlay-dropzone');
     const fileInput = container.querySelector('input[type="file"]');
-    const feedback  = container.querySelector('.overlay-dropfeedback');
+    const feedback = container.querySelector('.overlay-dropfeedback');
     const pasteClipBtn = container.querySelector('.paste-clipboard-btn');
-    const wikiRandomBtn    = container.querySelector('.wiki-random-btn');
-    const graphPreviewBtn  = container.querySelector('.graph-preview-btn');
+    const wikiRandomBtn = container.querySelector('.wiki-random-btn');
+    const graphPreviewBtn = container.querySelector('.graph-preview-btn');
     const nameInput = container.querySelector('.creation-name-input');
     const cancelBtn = container.querySelector(showNameField ? '.creation-cancel' : '.overlay-cancel');
     const submitBtn = container.querySelector(showNameField ? '.creation-submit' : '.overlay-extract');
@@ -286,7 +286,7 @@ const App = (() => {
           if (nameInput && !nameInput.value.trim()) nameInput.value = data.title;
           textarea.focus();
           checkSubmitEnabled();
-        } catch(e) {
+        } catch (e) {
           wikiRandomBtn.textContent = 'Failed — retry';
           setTimeout(() => { wikiRandomBtn.textContent = orig; }, 2000);
         } finally {
@@ -389,7 +389,7 @@ const App = (() => {
     addTriggerArea.style.overflowY = 'auto';
     addTriggerArea.innerHTML = '<div class="creation-form"></div>';
     const form = addTriggerArea.querySelector('.creation-form');
-    
+
     buildContentInputUI(form, {
       showNameField: true,
       showClipboard: true,
@@ -415,7 +415,7 @@ const App = (() => {
 
         function removeOverlay() {
           extractOverlay.classList.remove('visible');
-          setTimeout(() => { if(extractOverlay.parentNode) extractOverlay.parentNode.removeChild(extractOverlay); }, 400);
+          setTimeout(() => { if (extractOverlay.parentNode) extractOverlay.parentNode.removeChild(extractOverlay); }, 400);
         }
 
         async function runExtraction() {
@@ -455,7 +455,7 @@ const App = (() => {
 
   function deleteConcept(id, btnEl) {
     const item = btnEl.closest('.concept-item');
-    if (item) { item.style.transition='all 0.2s ease'; item.style.opacity='0'; item.style.transform='translateX(-12px)'; }
+    if (item) { item.style.transition = 'all 0.2s ease'; item.style.opacity = '0'; item.style.transform = 'translateX(-12px)'; }
 
     setTimeout(() => {
       const concepts = loadConcepts().filter(c => c.id !== id);
@@ -472,7 +472,7 @@ const App = (() => {
 
   function selectTile(tileIdx) {
     const concepts = loadConcepts();
-    const concept  = concepts[tileIdx];
+    const concept = concepts[tileIdx];
     if (concept) {
       selectConcept(concept.id);
       if (concept.graphData) showMapView(concept);
@@ -491,7 +491,7 @@ const App = (() => {
     // Update card info
     conceptLabelEl.textContent = concept.name;
     titleEl.textContent = STATES[concept.state].title;
-    descEl.textContent  = STATES[concept.state].desc;
+    descEl.textContent = STATES[concept.state].desc;
 
     // Night mode
     document.body.classList.toggle('night', concept.state === 'hibernating');
@@ -507,7 +507,7 @@ const App = (() => {
   function setState(newState) {
     const concepts = loadConcepts();
     const activeId = getActiveId();
-    const tileIdx  = concepts.findIndex(c => c.id === activeId);
+    const tileIdx = concepts.findIndex(c => c.id === activeId);
     if (tileIdx === -1) return;
 
     const prevState = concepts[tileIdx].state;
@@ -518,7 +518,7 @@ const App = (() => {
     updateActiveConcept(patch);
 
     // Update crystal group's data-state (drives CSS color transitions)
-    const crystalEl = document.getElementById('crystal-'+tileIdx);
+    const crystalEl = document.getElementById('crystal-' + tileIdx);
     if (crystalEl) {
       crystalEl.dataset.state = newState;
       if (prevState !== newState) Morph.start(tileIdx, prevState, newState);
@@ -530,10 +530,10 @@ const App = (() => {
 
     // Card text + night mode
     titleEl.textContent = STATES[newState].title;
-    descEl.textContent  = STATES[newState].desc;
+    descEl.textContent = STATES[newState].desc;
     document.body.classList.toggle('night', newState === 'hibernating');
 
-    Bus.emit('state:change', { from:prevState, to:newState, tileIdx });
+    Bus.emit('state:change', { from: prevState, to: newState, tileIdx });
     applyControlsForState(newState, getActiveConcept());
   }
 
@@ -541,24 +541,24 @@ const App = (() => {
     stopTimer();
     const btnDrill = document.getElementById('btn-drill');
     if (btnDrill) btnDrill.textContent = '3. Drill (Recall)';
-    showControls(false,false,false,false,false);
+    showControls(false, false, false, false, false);
 
     // Toggle the new floating Consolidate button over the grid
     const floatBtn = document.getElementById('btn-consolidate-float');
     if (floatBtn) {
       if (state === 'growing' && concept.drilled) {
-        
+
         // Dynamically compute exact crystal tip coordinates
         const idx = getActiveTileIdx();
         const base = [
           { x: 70, y: 45 },
-          { x: 0,  y: 85 },
+          { x: 0, y: 85 },
           { x: 140, y: 85 },
           { x: 70, y: 125 }
         ];
         if (idx !== -1 && base[idx]) {
           floatBtn.style.left = (base[idx].x + 70) + 'px';
-          floatBtn.style.top  = (base[idx].y + 8) + 'px'; // +28px padding - 20px crystal height
+          floatBtn.style.top = (base[idx].y + 8) + 'px'; // +28px padding - 20px crystal height
         }
 
         floatBtn.style.display = 'flex';
@@ -569,37 +569,37 @@ const App = (() => {
       }
     }
 
-    if      (state==='instantiated') { showControls(true,false,false,false,false); setButtons(true,false); }
-    else if (state==='growing')      { showControls(true,false,true,false,false);  setButtons(false,true); }
-    else if (state==='fractured') {
-      showControls(true,false,false,false,false); setButtons(false,true);
+    if (state === 'instantiated') { showControls(true, false, false, false, false); setButtons(true, false); }
+    else if (state === 'growing') { showControls(true, false, true, false, false); setButtons(false, true); }
+    else if (state === 'fractured') {
+      showControls(true, false, false, false, false); setButtons(false, true);
       if (btnDrill) btnDrill.textContent = '3. Drill (Repair)';
     }
-    else if (state==='hibernating') {
-      let remaining = 24*60*60;
+    else if (state === 'hibernating') {
+      let remaining = 24 * 60 * 60;
       if (concept && concept.timerStart) {
-        const elapsed = Math.floor((Date.now()-concept.timerStart)/1000);
-        remaining = Math.max(0, 24*60*60-elapsed);
+        const elapsed = Math.floor((Date.now() - concept.timerStart) / 1000);
+        remaining = Math.max(0, 24 * 60 * 60 - elapsed);
       }
       if (remaining === 0) { completeConsolidation(); return; }
       timeLeft = remaining;
-      showControls(false,false,false,true,true);
+      showControls(false, false, false, true, true);
       startTimer();
     }
   }
 
   function showControls(primary, drill, consolidate, timer, dev) {
-    if(primaryControls) primaryControls.style.display     = primary     ? 'flex'  : 'none';
-    if(drillControls) drillControls.style.display       = drill       ? 'flex'  : 'none';
-    if(consolidateControls) consolidateControls.style.display = consolidate ? 'flex'  : 'none';
-    if(timerDisplay) timerDisplay.style.display        = timer       ? 'block' : 'none';
-    if(devBtn) devBtn.style.display              = dev         ? 'block' : 'none';
+    if (primaryControls) primaryControls.style.display = primary ? 'flex' : 'none';
+    if (drillControls) drillControls.style.display = drill ? 'flex' : 'none';
+    if (consolidateControls) consolidateControls.style.display = consolidate ? 'flex' : 'none';
+    if (timerDisplay) timerDisplay.style.display = timer ? 'block' : 'none';
+    if (devBtn) devBtn.style.display = dev ? 'block' : 'none';
   }
   function setButtons(ex, dr) {
     const btnEx = document.getElementById('btn-extract');
     const btnDr = document.getElementById('btn-drill');
     if (btnEx) btnEx.disabled = !ex;
-    if (btnDr) btnDr.disabled   = !dr;
+    if (btnDr) btnDr.disabled = !dr;
   }
 
   function showEmptyState() {
@@ -607,9 +607,9 @@ const App = (() => {
     stopTimer();
     conceptLabelEl.textContent = '';
     titleEl.textContent = 'tink';
-    descEl.textContent  = 'Add your first tink.';
+    descEl.textContent = 'Add your first tink.';
     document.body.classList.remove('night');
-    showControls(false,false,false,false,false);
+    showControls(false, false, false, false, false);
   }
 
   function showRestartButton() {
@@ -650,7 +650,7 @@ const App = (() => {
         try {
           const pdfData = new Uint8Array(e.target.result);
           const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
-          
+
           let extractedText = '';
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
@@ -685,10 +685,10 @@ const App = (() => {
   function showContentOverlay() {
     if (primaryControls) primaryControls.style.display = 'none';
     const conceptId = getActiveId();
-    
+
     const overlay = document.createElement('div');
     overlay.id = 'content-overlay';
-    
+
     if (primaryControls) {
       primaryControls.insertAdjacentElement('afterend', overlay);
     } else {
@@ -728,7 +728,7 @@ const App = (() => {
   function drill() {
     const concept = getActiveConcept();
     if (!concept?.graphData) {
-      showControls(false,true,false,false,false);
+      showControls(false, true, false, false, false);
       return;
     }
     showMapView(concept);
@@ -754,14 +754,14 @@ const App = (() => {
   }
 
   function consolidate() {
-    updateActiveConcept({ timerStart:Date.now() });
+    updateActiveConcept({ timerStart: Date.now() });
     setState('hibernating');
     playAnim('cocoon', getActiveTileIdx());
   }
 
   // ── 15. Timer ──────────────────────────────────────────────
   let timerInterval = null;
-  let timeLeft      = 24*60*60;
+  let timeLeft = 24 * 60 * 60;
 
   function startTimer() {
     stopTimer();
@@ -772,16 +772,16 @@ const App = (() => {
       if (timeLeft <= 0) completeConsolidation();
     }, 1000);
   }
-  function stopTimer()  { clearInterval(timerInterval); timerInterval = null; }
+  function stopTimer() { clearInterval(timerInterval); timerInterval = null; }
   function updateTimerDisplay() {
-    const h = Math.floor(timeLeft/3600).toString().padStart(2,'0');
-    const m = Math.floor((timeLeft%3600)/60).toString().padStart(2,'0');
-    const s = (timeLeft%60).toString().padStart(2,'0');
+    const h = Math.floor(timeLeft / 3600).toString().padStart(2, '0');
+    const m = Math.floor((timeLeft % 3600) / 60).toString().padStart(2, '0');
+    const s = (timeLeft % 60).toString().padStart(2, '0');
     timerDisplay.textContent = `${h}:${m}:${s}`;
   }
   function completeConsolidation() {
     stopTimer();
-    updateActiveConcept({ timerStart:null });
+    updateActiveConcept({ timerStart: null });
     setState('actualized');
     playAnim('actualize', getActiveTileIdx());
   }
@@ -802,7 +802,7 @@ const App = (() => {
     let data;
     try {
       data = typeof concept.graphData === 'string' ? JSON.parse(concept.graphData) : concept.graphData;
-    } catch(e) {
+    } catch (e) {
       console.error("Invalid JSON graphData", e);
       return;
     }
@@ -825,7 +825,7 @@ const App = (() => {
     let html = '<div class="map-zone zone-1">';
     html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; margin-right: 48px;">';
     html += `<div class="map-header-title" style="margin-bottom: 0;">${escHtml(meta.source_title || concept.name)}</div>`;
-    
+
     if (concept.state === 'growing' || concept.state === 'fractured') {
       const btnText = concept.state === 'fractured' ? '✦ Repair (Drill)' : '✦ Start Drill';
       html += `<button class="btn-start-drill" onclick="App.startDrillFromMap()" title="Interactive Drill Session">${btnText}</button>`;
@@ -833,7 +833,7 @@ const App = (() => {
     html += '</div>';
 
     html += `<div class="map-core-thesis">${escHtml(meta.core_thesis || '')}</div>`;
-    
+
     html += '<div class="map-badges">';
     if (meta.architecture_type) html += `<div class="map-badge arch">${escHtml(meta.architecture_type.replace(/_/g, ' '))}</div>`;
     if (meta.difficulty) html += `<div class="map-badge diff">${escHtml(meta.difficulty)}</div>`;
@@ -870,8 +870,8 @@ const App = (() => {
         `;
         const subnodes = c.subnodes || [];
         subnodes.forEach(sub => {
-           const color = sub.drill_status ? 'var(--primary)' : '#c4c2d4';
-           html += `
+          const color = sub.drill_status ? 'var(--primary)' : '#c4c2d4';
+          html += `
              <div class="map-subnode-row">
                <div class="map-subnode-indicator" style="background:${color};"></div>
                <div class="map-subnode-content">
@@ -892,12 +892,12 @@ const App = (() => {
       html += '<div class="map-zone zone-4">';
       html += '<div class="map-section-title">Connections</div>';
       domMechs.forEach(rel => {
-         const txt = rel.mechanism || rel.rationale || '';
-         html += `<div class="map-cx-item"><strong>Domain:</strong> ${escHtml(txt)}</div>`;
+        const txt = rel.mechanism || rel.rationale || '';
+        html += `<div class="map-cx-item"><strong>Domain:</strong> ${escHtml(txt)}</div>`;
       });
       lrnPreqs.forEach(rel => {
-         const txt = rel.mechanism || rel.rationale || '';
-         html += `<div class="map-cx-item"><strong>Prerequisite:</strong> ${escHtml(txt)}</div>`;
+        const txt = rel.mechanism || rel.rationale || '';
+        html += `<div class="map-cx-item"><strong>Prerequisite:</strong> ${escHtml(txt)}</div>`;
       });
       html += '</div>';
     }
@@ -906,7 +906,7 @@ const App = (() => {
       html += '<div class="map-zone zone-5">';
       html += '<div class="map-section-title">Transferable Frameworks</div>';
       fws.forEach(fw => {
-         html += `<div class="map-fw-card">
+        html += `<div class="map-fw-card">
            <div class="map-fw-name">${escHtml(fw.name)}</div>
            <div class="map-fw-state">${escHtml(fw.statement)}</div>
          </div>`;
@@ -987,9 +987,9 @@ const App = (() => {
   function showDashboard() {
     setNavActive('nav-dashboard');
     const libraryView = document.getElementById('library-view');
-    const mapView     = document.getElementById('map-view');
-    const heroCard    = document.querySelector('.hero-card');
-    
+    const mapView = document.getElementById('map-view');
+    const heroCard = document.querySelector('.hero-card');
+
     if (libraryView) libraryView.classList.remove('visible');
     if (mapView) mapView.classList.remove('visible');
     if (currentGraphController) {
@@ -999,41 +999,100 @@ const App = (() => {
     if (heroCard) heroCard.style.display = 'flex';
   }
 
+  const STARTER_MAPS = [
+    { file: 'espresso_physics.json', name: 'Physics of Espresso Extraction', desc: 'Grind size, channeling, and thermodynamics' },
+    { file: 'mrna_vaccine.json', name: 'mRNA Vaccine Mechanism', desc: 'Lipid nanoparticles and ribosomal translation' },
+    { file: 'options_trading.json', name: 'Options Trading Fundamentals', desc: 'Leveraged asymmetry and Theta decay' },
+    { file: 'learnops_architecture.json', name: 'Theta: LearnOps Architecture', desc: 'The Generation Effect and Socratic Graphs' }
+  ];
+
+  async function importStarterMap(filename, conceptName) {
+    try {
+      const response = await fetch(`/data/library/${filename}`);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
+
+      const newConcept = {
+        id: generateId(),
+        name: conceptName,
+        createdAt: new Date().toISOString(),
+        state: 'growing',
+        graphData: JSON.stringify(data)
+      };
+
+      const concepts = loadConcepts();
+      concepts.push(newConcept);
+      saveConcepts(concepts);
+
+      renderGrid(concepts);
+      renderConceptList(concepts);
+      selectConcept(newConcept.id);
+      hideLibrary();
+
+      showMapView(newConcept);
+      setMapMode('graph');
+    } catch (error) {
+      console.error('Error loading starter map:', error);
+      alert('Failed to load the starter map.');
+    }
+  }
+
   function showLibrary() {
     setNavActive('nav-library');
     const libraryView = document.getElementById('library-view');
-    const heroCard    = document.querySelector('.hero-card');
-    const content     = document.getElementById('library-content');
+    const heroCard = document.querySelector('.hero-card');
+    const content = document.getElementById('library-content');
 
     const concepts = loadConcepts().filter(c => c.graphData);
 
+    let html = `
+      <div class="library-section">
+        <h3 class="library-section-title">Zero-Friction Starter Shelf</h3>
+        <p style="color:var(--text-secondary); margin-bottom: 20px; font-size: 0.95rem;">Click a concept to instantly drop it into your vault and start drilling.</p>
+        <div class="library-starter-grid">
+          ${STARTER_MAPS.map(s => `
+            <div class="library-card-starter" onclick="App.importStarterMap('${s.file}', '${s.name}')">
+              <div class="starter-card-title">${escHtml(s.name)}</div>
+              <div class="starter-card-desc">${escHtml(s.desc)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      
+      <div class="library-section" style="margin-top: 40px;">
+        <h3 class="library-section-title">Personal Vault</h3>
+    `;
+
     if (concepts.length === 0) {
-      content.innerHTML = '<p class="library-empty">No extracted knowledge maps yet. Add a concept to get started.</p>';
+      html += '<p class="library-empty" style="margin-top:10px;">No extracted knowledge maps yet. Add a concept or click a Starter Map to begin.</p>';
     } else {
-      content.innerHTML = concepts.map(c => {
+      html += `<div class="library-vault-grid" style="margin-top:20px; display:flex; flex-direction:column; gap:16px;">` + concepts.map(c => {
         let pretty = c.graphData;
-        try { pretty = JSON.stringify(JSON.parse(c.graphData), null, 2); } catch {}
+        try { pretty = JSON.stringify(JSON.parse(c.graphData), null, 2); } catch { }
         return `
-          <div class="library-card">
+          <div class="library-card" style="cursor:pointer;" onclick="App.selectConcept('${c.id}'); App.hideLibrary();">
             <div class="library-card-header">
               <span class="library-card-name">${escHtml(c.name)}</span>
-              <span class="library-card-state">${c.state}</span>
+              <span class="library-card-state" style="background:var(--success-surface); color:var(--success-text); padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">${c.state}</span>
             </div>
             <pre class="library-card-json">${escHtml(pretty)}</pre>
           </div>`;
-      }).join('');
+      }).join('') + `</div>`;
     }
+
+    html += `</div>`;
+    content.innerHTML = html;
 
     if (heroCard) heroCard.style.display = 'none';
     libraryView.classList.add('visible');
-    closeDrawer();
+    if (window.innerWidth < 900) closeDrawer();
   }
 
   function hideLibrary() {
     const libraryView = document.getElementById('library-view');
-    const heroCard    = document.querySelector('.hero-card');
+    const heroCard = document.querySelector('.hero-card');
     if (libraryView) libraryView.classList.remove('visible');
-    if (heroCard)    heroCard.style.display = 'flex';
+    if (heroCard) heroCard.style.display = 'flex';
   }
 
   function toggleCluster(el) {
@@ -1057,8 +1116,8 @@ const App = (() => {
     const c = {
       id: generateId(), name: 'My First Concept', state: legacyState,
       createdAt: Date.now(),
-      timerStart: legacyState==='hibernating'
-        ? parseInt(localStorage.getItem('learnops-timer-start')||'0',10)||null : null,
+      timerStart: legacyState === 'hibernating'
+        ? parseInt(localStorage.getItem('learnops-timer-start') || '0', 10) || null : null,
     };
     saveConcepts([c]);
     setActiveId(c.id);
@@ -1072,9 +1131,9 @@ const App = (() => {
 
   // Pixel coords (left, top) — tooltip bottom-center above each crystal apex within #grid-container
   const TILE_TOOLTIP_POS = [
-    { left: 140, top: 37  },  // tile-0 (back center)
-    { left: 70,  top: 77  },  // tile-1 (mid left)
-    { left: 210, top: 77  },  // tile-2 (mid right)
+    { left: 140, top: 37 },  // tile-0 (back center)
+    { left: 70, top: 77 },  // tile-1 (mid left)
+    { left: 210, top: 77 },  // tile-2 (mid right)
     { left: 140, top: 117 },  // tile-3 (front center)
   ];
 
@@ -1083,7 +1142,7 @@ const App = (() => {
     if (!c) return;
     const pos = TILE_TOOLTIP_POS[idx];
     tooltipEl.style.left = pos.left + 'px';
-    tooltipEl.style.top  = pos.top  + 'px';
+    tooltipEl.style.top = pos.top + 'px';
     tooltipEl.textContent = c.name + '  ·  ' + STATES[c.state].title;
     tooltipEl.classList.add('visible');
   }
@@ -1107,8 +1166,8 @@ const App = (() => {
   renderConceptList();
 
   // Restore selected concept
-  const concepts  = loadConcepts();
-  const toLoad    = concepts.find(c => c.id === getActiveId()) || concepts[0] || null;
+  const concepts = loadConcepts();
+  const toLoad = concepts.find(c => c.id === getActiveId()) || concepts[0] || null;
 
   if (!toLoad) {
     showEmptyState();
@@ -1116,13 +1175,92 @@ const App = (() => {
     setActiveId(toLoad.id);
     conceptLabelEl.textContent = toLoad.name;
     titleEl.textContent = STATES[toLoad.state].title;
-    descEl.textContent  = STATES[toLoad.state].desc;
+    descEl.textContent = STATES[toLoad.state].desc;
     document.body.classList.toggle('night', toLoad.state === 'hibernating');
     applyControlsForState(toLoad.state, toLoad);
     renderGrid(); // re-render to apply .selected class
   }
 
-  let drillState = { active: false, messages: [], node: null, pending: false };
+  let drillState = {
+    active: false,
+    messages: [],
+    node: null,
+    pending: false,
+    probeCount: 0,
+    nodesDrilled: 0,
+    sessionStartIso: null,
+  };
+
+  function parseConceptGraphData(concept) {
+    if (!concept?.graphData) return null;
+    if (typeof concept.graphData === 'string') {
+      return JSON.parse(concept.graphData);
+    }
+    return concept.graphData;
+  }
+
+  function persistActiveConceptGraphData(graphData) {
+    const concepts = loadConcepts();
+    const activeId = getActiveId();
+    const conceptIdx = concepts.findIndex((concept) => concept.id === activeId);
+    if (conceptIdx === -1) return null;
+
+    concepts[conceptIdx].graphData = JSON.stringify(graphData);
+    saveConcepts(concepts);
+    return concepts[conceptIdx];
+  }
+
+  function patchActiveConceptDrillOutcome(result) {
+    if (result?.routing !== 'NEXT' || !result?.node_id) return null;
+
+    const concept = getActiveConcept();
+    const graphData = parseConceptGraphData(concept);
+    if (!graphData) return null;
+
+    const drilledAt = new Date().toISOString();
+    let patched = false;
+
+    if (result.node_id === 'core-thesis') {
+      graphData.metadata = graphData.metadata || {};
+      graphData.metadata.drill_status = result.classification || graphData.metadata.drill_status || null;
+      graphData.metadata.gap_type = result.classification && result.classification !== 'solid'
+        ? result.classification
+        : null;
+      graphData.metadata.gap_description = result.classification && result.classification !== 'solid'
+        ? (result.gap_description || null)
+        : null;
+      graphData.metadata.last_drilled = drilledAt;
+      patched = true;
+    }
+
+    (graphData.clusters || []).forEach((cluster) => {
+      (cluster.subnodes || []).forEach((subnode) => {
+        if (subnode?.id !== result.node_id) return;
+
+        if (result.classification === 'solid') {
+          subnode.drill_status = 'solid';
+          subnode.gap_type = null;
+          subnode.gap_description = null;
+        } else if (result.classification) {
+          subnode.drill_status = result.classification;
+          subnode.gap_type = result.classification;
+          subnode.gap_description = result.gap_description || null;
+        } else {
+          // Defensive no-op: NEXT without a classification should still record that the node was visited,
+          // but should not overwrite the prior epistemic state until the backend provides a real judgment.
+        }
+
+        subnode.last_drilled = drilledAt;
+        patched = true;
+      });
+    });
+
+    if (!patched) return null;
+
+    const updatedConcept = persistActiveConceptGraphData(graphData);
+    currentGraphController?.syncFromKnowledgeMap?.(graphData, activeDrillNode);
+    return updatedConcept;
+  }
 
   function extractSystemAction(rawText) {
     if (!rawText) return { visibleText: '', action: null };
@@ -1172,11 +1310,14 @@ const App = (() => {
 
     drillState.pending = true;
     if (chatInput) chatInput.disabled = true;
+    showTypingIndicator();
 
     const outboundMessages = [...drillState.messages];
     if (userText) {
       outboundMessages.push({ role: 'user', content: userText });
     }
+
+    const sessionPhase = !drillState.messages.length && !userText ? 'init' : 'turn';
 
     const knowledgeMap = typeof concept.graphData === 'string'
       ? JSON.parse(concept.graphData)
@@ -1190,9 +1331,13 @@ const App = (() => {
         concept_id: concept.id,
         node_id: drillState.node.id,
         node_label: drillState.node.fullLabel || drillState.node.label || concept.name,
-        node_detail: drillState.node.detail || '',
+        node_mechanism: drillState.node.detail || '',
         knowledge_map: knowledgeMap,
         messages: outboundMessages,
+        session_phase: sessionPhase,
+        probe_count: drillState.probeCount,
+        nodes_drilled: drillState.nodesDrilled,
+        session_start_iso: drillState.sessionStartIso,
         api_key: apiKey,
       }),
     });
@@ -1203,29 +1348,48 @@ const App = (() => {
     }
 
     const data = await response.json();
+    hideTypingIndicator();
 
+    patchActiveConceptDrillOutcome(data);
     drillState.messages = outboundMessages;
-    handleDrillAssistantMessage(data.reply || '');
-    if (data.reply?.trim()) {
-      drillState.messages.push({ role: 'assistant', content: data.reply.trim() });
+    drillState.probeCount = data.probe_count ?? drillState.probeCount;
+    drillState.nodesDrilled = data.nodes_drilled ?? drillState.nodesDrilled;
+    handleDrillAssistantMessage(data.agent_response || '');
+    if (data.agent_response?.trim()) {
+      drillState.messages.push({ role: 'assistant', content: data.agent_response.trim() });
     }
     drillState.pending = false;
     if (chatInput) {
-      chatInput.disabled = false;
-      chatInput.focus();
+      chatInput.disabled = !!data.session_terminated;
+      if (!data.session_terminated) {
+        chatInput.focus();
+      }
     }
   }
 
   function startDrill(nodeContext = null) {
     const concept = getActiveConcept();
     if (!concept) return;
-    
+
+    if (!nodeContext) {
+      const km = typeof concept.graphData === 'string' ? JSON.parse(concept.graphData || '{}') : (concept.graphData || {});
+      const backbone = km.backbone && km.backbone[0] ? km.backbone[0] : null;
+      nodeContext = { 
+        id: backbone ? backbone.id : 'core-thesis', 
+        fullLabel: concept.name, 
+        detail: backbone ? backbone.principle : '' 
+      };
+    }
+
     drillState.active = true;
     drillState.messages = [];
     drillState.node = nodeContext;
     drillState.pending = false;
+    drillState.probeCount = 0;
+    drillState.nodesDrilled = 0;
+    drillState.sessionStartIso = new Date().toISOString();
     activeDrillNode = nodeContext?.id || null;
-    
+
     if (drillUi) drillUi.style.display = 'flex';
     if (chatHistory) chatHistory.innerHTML = '';
     if (chatInput) {
@@ -1239,8 +1403,9 @@ const App = (() => {
     currentGraphController?.setActiveDrillNode?.(activeDrillNode);
     setMapMode('graph');
 
-    requestDrillTurn('Start the drill for this node and ask me the first retrieval question.').catch((err) => {
+    requestDrillTurn().catch((err) => {
       console.error(err);
+      hideTypingIndicator();
       appendBubble('ai', 'The drill service failed to respond. Check the backend or API key and try again.');
       drillState.pending = false;
       if (chatInput) chatInput.disabled = false;
@@ -1251,6 +1416,9 @@ const App = (() => {
     drillState.active = false;
     drillState.messages = [];
     drillState.pending = false;
+    drillState.probeCount = 0;
+    drillState.nodesDrilled = 0;
+    drillState.sessionStartIso = null;
     if (drillUi) drillUi.style.display = 'none';
     activeDrillNode = null;
     if (chatHistory) chatHistory.innerHTML = '';
@@ -1261,11 +1429,41 @@ const App = (() => {
     currentGraphController?.clearActiveDrillNode?.();
   }
 
+  let typingIndicatorElement = null;
+
+  function showTypingIndicator() {
+    if (typingIndicatorElement || !chatHistory) return;
+    typingIndicatorElement = document.createElement('div');
+    typingIndicatorElement.className = 'chat-bubble ai typing';
+    typingIndicatorElement.innerHTML = `
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>
+    `;
+    chatHistory.appendChild(typingIndicatorElement);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+  }
+
+  function hideTypingIndicator() {
+    if (typingIndicatorElement && typingIndicatorElement.parentNode) {
+      typingIndicatorElement.parentNode.removeChild(typingIndicatorElement);
+    }
+    typingIndicatorElement = null;
+  }
+
+  function formatChatText(text) {
+    if (!text) return '';
+    let safeText = escHtml(text);
+    safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    safeText = safeText.replace(/\*(.*?)\*/g, '<strong><em>$1</em></strong>');
+    return safeText;
+  }
+
   function appendBubble(role, text) {
     if (!chatHistory) return;
     const bubble = document.createElement('div');
     bubble.className = `chat-bubble ${role}`;
-    bubble.textContent = text;
+    bubble.innerHTML = formatChatText(text);
     chatHistory.appendChild(bubble);
     setTimeout(() => {
       chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -1278,12 +1476,13 @@ const App = (() => {
         e.preventDefault();
         const text = chatInput.value.trim();
         if (!text || drillState.pending) return;
-        
+
         appendBubble('user', text);
         chatInput.value = '';
         chatInput.disabled = true;
         requestDrillTurn(text).catch((err) => {
           console.error(err);
+          hideTypingIndicator();
           appendBubble('ai', 'The drill service failed to respond. Check the backend or API key and try again.');
           drillState.pending = false;
           if (chatInput) chatInput.disabled = false;
@@ -1314,7 +1513,8 @@ const App = (() => {
     extract, drill, drillFail, drillPass, consolidate,
     fastForward,
     hideMapView, setMapMode, toggleCluster,
-    showLibrary, hideLibrary, showDashboard
+    showLibrary, hideLibrary, showDashboard,
+    importStarterMap
   };
 
 })();
@@ -1364,12 +1564,12 @@ function startSettings() {
 
   App.openDrawer();
 
-  const dot       = triggerArea.querySelector('#settings-dot');
-  const testBtn   = triggerArea.querySelector('#settings-test-btn');
+  const dot = triggerArea.querySelector('#settings-dot');
+  const testBtn = triggerArea.querySelector('#settings-test-btn');
   const statusBox = triggerArea.querySelector('#settings-status');
-  const keyBox    = triggerArea.querySelector('#key-box');
-  const keyInput  = triggerArea.querySelector('#settings-key-input');
-  const keySave   = triggerArea.querySelector('#settings-key-save');
+  const keyBox = triggerArea.querySelector('#key-box');
+  const keyInput = triggerArea.querySelector('#settings-key-input');
+  const keySave = triggerArea.querySelector('#settings-key-save');
   const keyStatus = triggerArea.querySelector('#settings-key-status');
 
   // Pre-fill saved key if present

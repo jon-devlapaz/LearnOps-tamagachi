@@ -536,7 +536,7 @@ body.night #card      { background-color: var(--bg); }
 
 /* Mobile adjustments for map and library views */
 @media (max-width: 899px) {
-  .map-view, .library-view { 
+  .map-view { 
     padding: 56px 24px 24px; 
     border-radius: 0; 
     position: fixed; 
@@ -544,6 +544,10 @@ body.night #card      { background-color: var(--bg); }
     z-index: 2000;
     height: 100dvh;
     box-sizing: border-box;
+  }
+  .library-view {
+    padding: 24px 16px; 
+    border-radius: 0;
   }
   .map-close-btn { top: 16px; right: 16px; }
   .map-core-thesis { font-size: 17px; }
