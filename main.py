@@ -111,6 +111,7 @@ def drill(req: DrillRequest):
         raise HTTPException(status_code=500, detail=str(err))
 
 
-# Serve the frontend. API routes must be defined above this mount.
-# Path(__file__).parent resolves correctly both locally and on Vercel.
-app.mount("/", StaticFiles(directory=str(Path(__file__).parent / "public"), html=True), name="static")
+# Serve the frontend locally. On Vercel, static files are served by the CDN.
+_public_dir = Path(__file__).parent / "public"
+if _public_dir.is_dir():
+    app.mount("/", StaticFiles(directory=str(_public_dir), html=True), name="static")
