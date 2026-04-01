@@ -243,12 +243,31 @@ def extract_youtube(req: UrlExtractRequest):
 
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
+        from youtube_transcript_api._errors import (
+            IpBlocked,
+            NoTranscriptFound,
+            RequestBlocked,
+            TranscriptsDisabled,
+            VideoUnavailable,
+        )
     except ImportError:
         raise HTTPException(status_code=503, detail="YouTube transcript support is not installed on the server.")
 
     try:
         transcript_list = YouTubeTranscriptApi().fetch(video_id)
         text = " ".join(segment.text for segment in transcript_list).strip()
+    except (RequestBlocked, IpBlocked) as err:
+        logger.exception("YouTube transcript fetch blocked for video_id=%s", video_id)
+        raise HTTPException(
+            status_code=503,
+            detail="YouTube blocked transcript retrieval from the hosted server. Paste the transcript text manually instead.",
+        ) from err
+    except (NoTranscriptFound, TranscriptsDisabled, VideoUnavailable) as err:
+        logger.exception("YouTube transcript unavailable for video_id=%s", video_id)
+        raise HTTPException(
+            status_code=422,
+            detail="This video does not have a retrievable public transcript. Paste the transcript text manually instead.",
+        ) from err
     except Exception as err:
         logger.exception("YouTube transcript fetch failed for video_id=%s", video_id)
         raise HTTPException(status_code=502, detail="Could not fetch YouTube transcript.") from err
