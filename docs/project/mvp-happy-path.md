@@ -1,5 +1,19 @@
 # MVP Happy Path
 
+Purpose: current end-to-end tester flow for the MVP branch.
+
+Read this when:
+
+- validating whether the current MVP is healthy enough for sharing
+- running manual smoke tests
+- checking what "working" means right now for testers
+
+Read these first if you need deeper context:
+
+- [project/state.md](state.md)
+- [product/progressive-disclosure.md](../product/progressive-disclosure.md)
+- [drill/graph-invariants.md](../drill/graph-invariants.md)
+
 This document describes the intended end-to-end flow for today's MVP tester share.
 
 It is not the full future-state product spec.
@@ -29,6 +43,9 @@ That means:
 - `solidified` = verified understanding
 
 The graph should update based on structured drill results, not hidden `[SYSTEM_ACTION]` payloads.
+
+This document is intentionally operational.
+It should not become the source of truth for UX philosophy or low-level drill invariants.
 
 ## Happy Path: Manual Test
 

@@ -1,5 +1,19 @@
 # Drill Happy Path Evals
 
+Purpose: manual evaluation guide for validating drill outcomes and graph-state updates.
+
+Read this when:
+
+- manually evaluating drill quality and graph truthfulness
+- testing solid vs non-solid outcomes
+- verifying re-drill conversion and force-advance behavior
+
+Read these first if you need system context:
+
+- [graph-invariants.md](graph-invariants.md)
+- [product/progressive-disclosure.md](../product/progressive-disclosure.md)
+- [project/mvp-happy-path.md](../project/mvp-happy-path.md)
+
 This document is for manual testing of drill behavior and graph updates.
 
 Use the `Thermostat Control Loop` starter map for the cleanest evals.
@@ -28,6 +42,9 @@ When `routing === "NEXT"`:
 - non-solid classification -> node becomes `drilled`
 
 The frontend patches `concept.graphData`, then the graph re-renders from that patched state.
+
+This document should stay concrete and test-oriented.
+Do not expand it into a product manifesto or implementation spec.
 
 ## Session Rules To Remember
 
