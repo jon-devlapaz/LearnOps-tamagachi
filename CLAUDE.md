@@ -172,6 +172,6 @@ The `learnops/` directory contains Claude Agent Skills for each pipeline stage. 
 
 ## Drill-Graph Context Hub
 
-Before changing drill UX, graph UX, or Stage 3 prompt/routing behavior, read [docs/drill-graph-invariants.md](./docs/drill-graph-invariants.md).
+Before changing drill UX, graph UX, or Stage 3 prompt/routing behavior, read [docs/drill/graph-invariants.md](./docs/drill/graph-invariants.md).
 
 That document defines the product invariants for drill-graph lockstep, the dungeon-room mental model, the epistemic state model (`locked` / `drilled` / `solidified`), cluster derivation rules, and the rules for when graph unlocks are allowed.
