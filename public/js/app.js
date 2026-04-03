@@ -1275,7 +1275,7 @@ const App = (() => {
 
   function setNavActive(id) {
     currentPrimaryNav = id;
-    ['nav-dashboard', 'nav-library'].forEach((navId) => {
+    ['nav-dashboard', 'nav-library', 'nav-analytics'].forEach((navId) => {
       const el = document.getElementById(navId);
       if (el) el.classList.toggle('active', navId === currentPrimaryNav);
     });
@@ -1440,6 +1440,12 @@ const App = (() => {
     libraryView.classList.add('visible');
     if (window.innerWidth < 900) closeDrawer();
     scheduleTutorialRefresh();
+  }
+
+  function showAnalytics() {
+    setNavActive('nav-analytics');
+    if (window.innerWidth < 900) closeDrawer();
+    window.location.href = '/ai-runs-dashboard.html';
   }
 
   function hideLibrary() {
@@ -2273,7 +2279,7 @@ const App = (() => {
     extract, drill, drillFail, drillPass, consolidate,
     fastForward,
     hideMapView, setMapMode, toggleCluster,
-    showLibrary, hideLibrary, showDashboard,
+    showLibrary, hideLibrary, showDashboard, showAnalytics,
     importStarterMap,
     toggleTheme, runHeroAction
   };
