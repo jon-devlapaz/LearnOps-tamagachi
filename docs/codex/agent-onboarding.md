@@ -227,6 +227,8 @@ Relevant files:
 
 Use when adjusting focus mode, fog-of-war, locked node behavior, or drill context presentation.
 
+If the request is a narrow regression rather than a broader behavior change, route it through [hotfix-workflow.md](hotfix-workflow.md) first.
+
 Recommended flow:
 
 1. `elliot` defines the intended visual and interaction rule.

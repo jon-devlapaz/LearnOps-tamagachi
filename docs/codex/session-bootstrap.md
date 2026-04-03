@@ -15,6 +15,7 @@ Before doing substantive work, do this in order:
 4. If this task touches product science, use the theta-research skill
 5. Decide which agents are needed
 6. Make a plan if the task is large or ambiguous
+7. If this is a narrow regression or behavior break, use docs/codex/hotfix-workflow.md
 
 Operating rules:
 - Use Goal / Context / Constraints / Done-when framing
