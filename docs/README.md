@@ -22,6 +22,7 @@ This folder is organized by purpose, not by chronology.
 - Read [AGENTS.md](../AGENTS.md) for agent routing and repo constraints.
 - Read [project/state.md](project/state.md) for current truth.
 - Read [codex/session-bootstrap.md](codex/session-bootstrap.md) for new sessions.
+- Read [codex/hotfix-workflow.md](codex/hotfix-workflow.md) when a narrow regression needs fast, bounded handling.
 - Read [drill/graph-invariants.md](drill/graph-invariants.md) before changing drill or graph behavior.
 
 ## Decision Layers
@@ -32,6 +33,8 @@ This folder is organized by purpose, not by chronology.
   [product/progressive-disclosure.md](product/progressive-disclosure.md)
 - Traversal and next-route spec:
   [product/graph-traversal.md](product/graph-traversal.md)
+- Post-drill result-state behavior:
+  [product/post-drill-ux-spec.md](product/post-drill-ux-spec.md)
 - Hard engineering constraints:
   [drill/graph-invariants.md](drill/graph-invariants.md)
 - Operational tester flow:
@@ -40,3 +43,11 @@ This folder is organized by purpose, not by chronology.
   [project/structure-stabilization-plan.md](project/structure-stabilization-plan.md)
 - Manual drill evaluation:
   [drill/happy-path-evals.md](drill/happy-path-evals.md)
+- Fresh-map answer matrix for copy/paste taste tests:
+  [drill/answer-grid-template.md](drill/answer-grid-template.md)
+- Internal one-click tasting harness spec:
+  [drill/tasting-harness.md](drill/tasting-harness.md)
+- Filled example for current neuroscience calibration:
+  [drill/answer-grid-action-potential.md](drill/answer-grid-action-potential.md)
+- Product-feel scorecard for fixture runs:
+  [drill/rob-taste-scorecard.md](drill/rob-taste-scorecard.md)
