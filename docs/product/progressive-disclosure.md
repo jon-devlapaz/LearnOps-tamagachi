@@ -16,6 +16,7 @@ It should stay closer to current truth than to aspirational philosophy.
 For enduring UX principles, read:
 
 - [ux-framework.md](ux-framework.md)
+- [post-drill-ux-spec.md](post-drill-ux-spec.md)
 
 For hard engineering rules, read:
 
@@ -90,6 +91,19 @@ Interpretation:
 
 These are not interchangeable.
 
+## AI Assistance Guardrails
+
+AI support in MVP is allowed only if it preserves the drill contract and graph truth.
+
+That means:
+
+- the learner must attempt the active node before answer-revealing help is shown
+- scaffolds and feedback may clarify the gap after an attempt, but must not silently change the target
+- AI-generated explanation quality does not itself mutate graph state
+- only persisted drill outcomes should affect node, cluster, and unlock state
+- accessibility aids and alternate representations are acceptable only if they preserve the same target and mastery standard
+- teacher or operator summaries should stay outside the learner mastery path unless explicitly designed otherwise
+
 ## Routing Rules
 
 ### `routing === "PROBE"`
@@ -101,6 +115,7 @@ These are not interchangeable.
 
 - stay on the same node
 - no graph mutation
+- may provide narrower help or alternate framing, but must not convert the interaction into answer exposure that bypasses reconstruction
 
 ### `routing === "NEXT"` with `classification === "solid"`
 
@@ -115,6 +130,7 @@ These are not interchangeable.
 - persist the gap
 - do not treat the node as mastered
 - do not fake unlocks
+- do not let polished AI feedback obscure that the node remains unresolved
 
 ### `routing === "SESSION_COMPLETE"`
 
@@ -195,6 +211,10 @@ This visible conversion is part of the product payoff.
 
 Detailed gap taxonomy belongs in the side panel or detail surfaces, not in a graph-wide legend.
 
+For the exact learner-facing behavior after a drill resolves, read:
+
+- [post-drill-ux-spec.md](post-drill-ux-spec.md)
+
 ## Current MVP Flow
 
 Today, the intended happy path is:
@@ -206,6 +226,12 @@ Today, the intended happy path is:
 5. backend returns a structured drill result
 6. frontend patches the active node only
 7. graph re-renders from persisted state
+
+AI-generated support belongs inside this flow only as:
+
+- pre-drill setup or content preparation before the attempt
+- post-attempt feedback or scaffold within the same active node
+- accessibility or representation support that does not alter mastery semantics
 
 ## Out Of Scope For This Document
 

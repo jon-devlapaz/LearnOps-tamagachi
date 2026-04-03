@@ -33,6 +33,8 @@ This folder is organized by purpose, not by chronology.
   [product/progressive-disclosure.md](product/progressive-disclosure.md)
 - Traversal and next-route spec:
   [product/graph-traversal.md](product/graph-traversal.md)
+- Post-drill result-state behavior:
+  [product/post-drill-ux-spec.md](product/post-drill-ux-spec.md)
 - Hard engineering constraints:
   [drill/graph-invariants.md](drill/graph-invariants.md)
 - Operational tester flow:
