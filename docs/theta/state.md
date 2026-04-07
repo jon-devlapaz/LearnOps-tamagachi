@@ -2,7 +2,7 @@
 
 ## Product-science snapshot
 
-- LearnOps-tamagachi is a retrieval-centered learning product. The product is trying to improve durable understanding by forcing generation before recognition, giving specific feedback after the attempt, and using spacing/consolidation to distinguish short-term access from retained knowledge.
+- socratink is a retrieval-centered learning product. The product is trying to improve durable understanding by forcing generation before recognition, giving specific feedback after the attempt, and using spacing/consolidation to distinguish short-term access from retained knowledge.
 - Current product framing treats AI as a support layer around that loop: useful for adaptation, feedback, access, and operator leverage, but not itself evidence of learning.
 
 ## Current claims
@@ -58,6 +58,12 @@
 - What evaluation design is needed to prevent AI scoring bias across language, phrasing, and accessibility differences?
 
 ## Recent decisions
+
+### 2026-04-05
+
+- Decision: the April 2026 research synthesis is complete. The three-phase node loop (cold attempt → targeted study → spaced re-drill), four-state model, and evidence-based UX framework are now codified in `docs/product/ux-framework.md`, `progressive-disclosure.md`, and `post-drill-ux-spec.md`.
+- Why: the research track produced sufficient evidence to commit to the three-phase architecture. Pretesting effect, prediction error learning, spaced retrieval, and social normalization are all supported by multiple RCTs and meta-analyses.
+- Evidence basis: full research synthesis documented in the rewritten UX framework and current-bets docs.
 
 ### 2026-04-02
 

@@ -9,10 +9,13 @@ Before doing substantive work:
 1. Read AGENTS.md
 2. Read docs/project/state.md
 3. Read docs/theta/state.md when the task touches product science or claims
-4. Use the theta-research skill when the task touches learning science
-5. Decide which agents are actually needed
-6. Make a plan when the task is large or ambiguous
-7. Use docs/codex/hotfix-workflow.md for narrow regressions
+4. Read docs/codex/three-phase-loop-implementation-brief.md when the task involves the cold attempt, study, or re-drill architecture
+5. Use the theta-research skill when the task touches learning science
+6. Decide which agents are actually needed
+7. Make a plan when the task is large or ambiguous
+8. Use docs/codex/hotfix-workflow.md for narrow regressions
+
+The product implements a three-phase node loop (cold attempt → targeted study → spaced re-drill) with a four-state model (locked → primed → drilled → solidified). All changes to drill, graph, routing, or state must be evaluated against this architecture.
 
 Operating rules:
 - Prefer a small party over too many agents

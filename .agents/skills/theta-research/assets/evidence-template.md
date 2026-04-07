@@ -17,7 +17,7 @@ Use this template when Theta reads a paper closely enough to create a reusable r
 ## Relevance
 
 - Relevant phase(s):
-- Why this paper matters for LearnOps-tamagachi:
+- Why this paper matters for socratink:
 
 ## Core Claim
 

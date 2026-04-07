@@ -214,6 +214,19 @@ That means:
 The graph remains a projection of the knowledge map.
 Traversal chooses among truthful next moves inside that projection.
 
+## Relationship To Interleaving
+
+The three-phase loop introduces within-session interleaving: cold attempt on node A, cold attempt on node B, study A, re-drill A. Interleaving manages within-session node rotation to produce buffer flush for spacing. Traversal manages cross-session route selection (repair, advance, return, branch). These are complementary but distinct systems — interleaving does not replace traversal, and traversal should not override interleaving rhythm.
+
+## Three-Phase Loop Compatibility Notes
+
+This document was written before the four-state model was finalized. The following updates apply:
+
+- The `primed` state (cold attempt completed, study accessible) must be accounted for in route types. A `primed` node is not yet a candidate for `repair` or `return` — it needs study + re-drill first.
+- The `advance` route type now requires that the governing node has been `solidified` through a spaced re-drill, not just drilled once.
+- Route selection after a cold attempt should recommend interleaving (another cold attempt on a different node), not immediate re-drill.
+- A more substantial rewrite of this document may be needed in a follow-up session to fully integrate the interleaving rhythm with the traversal heuristics.
+
 ## MVP Boundaries
 
 This document does not introduce:

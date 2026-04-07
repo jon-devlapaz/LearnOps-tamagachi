@@ -120,6 +120,34 @@ When drill or ingestion behavior depends on external services:
 
 This matters in this repo because hosted behavior can differ materially on Vercel.
 
+## Four-State Model Compatibility Flags
+
+> Added 2026-04-05 during doc consolidation. These flags identify where the invariants above need updating for the three-phase loop and four-state model. A full rewrite is deferred — these are conflict markers, not resolutions.
+
+**Invariant 5 (Graph Mutation Rules)** assumes three states. Under the four-state model:
+
+- Cold attempt completion → node transitions from `locked` to `primed` (new mutation type not listed)
+- Cold attempts are unscored: no `classification` field, no `solid`/non-solid distinction
+- Re-drill with `solid` → `solidified` (unchanged)
+- Re-drill with non-solid → `drilled` (unchanged)
+
+**Invariant 6 (Cluster State Is Derived)** needs a `primed` derivation rule:
+
+- Current: `locked` / `drilled` / `solidified`
+- Needed: add `primed` — at least one subnode has been cold-attempted but not re-drilled
+
+**Invariant 7 (Unlock Logic)** does not account for spacing validation:
+
+- Downstream content should not unlock based on a cold attempt alone (`primed` is not an unlock condition)
+- Re-drill eligibility requires spacing validation (`re_drill_eligible_after` must have passed)
+- The frontend must enforce spacing — this is a new invariant not currently listed
+
+**No invariant currently addresses:**
+
+- The prohibition on scoring cold attempts
+- The spacing validation contract
+- The interleaving requirement between cold attempt and re-drill
+
 ## Pre-Change Checklist
 
 Before shipping a drill or graph change, verify:

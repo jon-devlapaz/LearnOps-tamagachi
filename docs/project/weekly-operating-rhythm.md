@@ -1,0 +1,4 @@
+- Monday: priorities and risks
+- Midweek: product review and unblock
+- Friday: decisions, shipped work, learned risks
+- What Claude should help produce each week

@@ -26,23 +26,27 @@ A tester should be able to:
 
 1. add a concept
 2. extract a knowledge map
-3. open the graph
-4. start a drill on the core thesis or a subnode
-5. complete at least one drill cycle
-6. see the graph update without crashing
-7. refresh confidence that drill outcomes are reflected in the graph state
+3. open the graph with four node states visible
+4. begin a cold attempt on the first available node
+5. see the node become `primed` (no score shown)
+6. study the targeted material
+7. interleave with cold attempts on other nodes
+8. complete a spaced re-drill on the first node
+9. see the node become `solidified` or remain `drilled`
+10. verify the graph updates without crashing
 
 ## Current Product Truth
 
 The graph is an epistemic map, not a progress tracker.
 
-That means:
+Four states:
 
 - `locked` = not yet available
-- `drilled` = attempted but not solid
-- `solidified` = verified understanding
+- `primed` = cold attempt completed, study accessible
+- `drilled` = re-drilled but not solid
+- `solidified` = verified understanding via spaced re-drill
 
-The graph should update based on structured drill results, not hidden `[SYSTEM_ACTION]` payloads.
+The graph should update based on structured drill results.
 
 This document is intentionally operational.
 It should not become the source of truth for UX philosophy or low-level drill invariants.
@@ -105,35 +109,71 @@ Expected result:
 - graph renders without console errors
 - core thesis node is visible
 - clusters and subnodes render with current derived states
+- four node states are visually distinguishable
 - graph should not crash when opening/closing quickly
 
-### 6. Start A Drill
+### 6. Begin Cold Attempt On First Available Node
 
-Preferred tester path for MVP:
-
-- start drill from the core thesis first
-- then try a visible subnode
+Start a cold attempt on the core thesis or a subnode.
 
 Expected result:
 
 - exactly one active drill node is highlighted
 - drill title matches the node being drilled
+- cold attempt is explicitly unscored — no classification, no tier/band, no performance metrics shown
 - backend receives that node id as the drill target
 
-### 7. Complete One Drill Cycle
+### 7. Cold Attempt Completes — Node Becomes `primed`
 
-Answer until the backend returns a `NEXT` response.
+After the cold attempt resolves:
 
 Expected result:
 
-- the currently drilled node is the only node patched
-- if classification is `solid`, that node becomes `solidified`
-- if classification is non-solid, that node becomes `drilled`
+- node state transitions to `primed`
+- study view opens with targeted material
+- no score or classification is shown to the learner
+- normalization message is displayed ("most people get this wrong the first time")
+- graph updates to show `primed` state
+
+### 8. Study The Targeted Material
+
+Learner reads the study view.
+
+Expected result:
+
+- study material is targeted to the gap revealed by the cold attempt
+- study view does not offer immediate re-drill
+
+### 9. Interleave With Other Nodes
+
+System recommends a cold attempt on a different node (interleaving for buffer flush).
+
+Expected result:
+
+- spacing validation blocks premature re-drill on the first node
+- learner completes 1-2 more cold attempts + studies on different nodes
+- minimum ~10-15 minutes of interleaved cognitive work before re-drill becomes available
+
+### 10. Spaced Re-Drill On First Node
+
+When `re_drill_eligible_after` has passed, re-drill becomes available.
+
+Expected result:
+
+- re-drill is offered only after spacing requirement is met
+- backend receives re-drill phase context
+- backend returns structured drill result with classification
+
+### 11. Node State Updates From Re-Drill Classification
+
+Expected result:
+
+- if classification is `solid`, node becomes `solidified` — celebration feedback
+- if classification is non-solid, node becomes `drilled` — no celebration, wise feedback
 - graph updates without a full remount
-- drill panel remains open
 - no Cytoscape teardown error appears in console
 
-### 8. Verify Persistence During The Session
+### 12. Verify Persistence And Graph Truth
 
 After the graph updates:
 
@@ -147,53 +187,47 @@ Expected result:
 - cluster state reflects subnode outcomes
 - no state is lost on graph refresh/re-render inside the current browser session
 
-## What Is In Scope Today
+## Acceptance Criteria
 
-- structured drill response handling
-- node-level graph updates from drill outcomes
-- derived cluster state from subnode `drill_status`
-- backbone and subnode drill persistence
-- session fatigue guardrail
-- retry/error handling for Gemini API failures
+- cold attempt produces `primed` (no score)
+- study view opens after cold attempt
+- spacing validation blocks premature re-drill
+- re-drill produces `solidified` or `drilled`
+- four states render in graph (`locked`, `primed`, `drilled`, `solidified`)
+- graph updates truthfully from persisted state
 
 ## Known MVP Limitations
 
-These are known and acceptable for this tester share:
+### 1. localStorage Is The Only Persistence Layer
 
-### 1. Mechanism Travels Over The Wire
+All learner progress lives in `localStorage`. A browser clear wipes everything. No database, no auth, no server-side persistence. This is acceptable for MVP but not for retention.
 
-The frontend still sends `node_mechanism` to `/api/drill`.
+### 2. Spacing Validation Is Client-Side
 
-This is known design debt, not a surprise bug.
+The frontend tracks `study_completed_at` and compares against current time + interleaving activity. This is bypassable. For production, spacing validation should move server-side.
 
-### 2. Session State Lives In Browser Memory
+### 3. Mechanism Travels Over The Wire
 
-Refresh can interrupt continuity of the active drill session.
+The frontend still sends `node_mechanism` to `/api/drill`. This is known design debt.
 
-Persisted graph outcomes survive because they are patched into `concept.graphData`, but in-progress chat/session state does not fully persist.
+### 4. Session State Lives In Browser Memory
 
-### 3. Unlock Cascade Is Not Fully Built
+Refresh can interrupt continuity of the active drill session. Persisted graph outcomes survive because they are patched into `concept.graphData`, but in-progress chat/session state does not fully persist.
 
-The graph now reflects drill outcomes and derived cluster state, but the full downstream unlock cascade is still a follow-up slice.
+### 5. Unlock Cascade Is Not Fully Built
 
-For today's MVP, the main success criterion is:
-
-- no crash
-- truthful node state updates
-- graph/drill lockstep
-
-### 4. Legacy `SYSTEM_ACTION` Parsing Still Exists
-
-The frontend still contains the old parsing path, but the new happy path should not depend on it.
+The graph reflects drill outcomes and derived cluster state, but the full downstream unlock cascade is still a follow-up slice.
 
 ## What Testers Should Report
 
 Ask testers to report:
 
 - which node they were drilling
+- what phase they were in (cold attempt vs re-drill)
 - what they answered in plain language
 - whether the graph updated
 - whether the update matched their experience
+- whether spacing validation felt correct or premature/overdue
 - whether the app crashed or the graph disappeared
 - any confusing mismatch between the active drill target and the highlighted graph node
 
@@ -206,20 +240,22 @@ The MVP should be considered unhealthy if any of these occur:
 - graph changes but `concept.graphData` does not persist the change
 - active drill highlight does not match the node being evaluated
 - node becomes `solidified` on a non-solid classification
+- cold attempt shows a score or classification
+- re-drill is offered before spacing requirement is met
+- node transitions directly from `locked` to `drilled` or `solidified`
 - backend returns success but the graph remains stale
 
 ## Minimum Demo Narrative
 
-This is the shortest coherent demo:
+This is the shortest coherent demo of the three-phase loop:
 
 1. Create concept
 2. Extract map
 3. Open graph
-4. Start drill on core thesis
-5. Get one `NEXT` result
-6. Show node state update in graph
-7. Start drill on a subnode
-8. Get one more `NEXT` result
-9. Show graph update without crash
+4. Cold attempt on core thesis — node becomes `primed`
+5. Study the targeted material
+6. Cold attempt on a subnode — second node becomes `primed`
+7. Re-drill first node after spacing — node becomes `solidified` or `drilled`
+8. Show graph reflects all four states truthfully
 
-If those nine steps work, the MVP is ready for external qualitative feedback.
+If those eight steps work, the MVP is ready for external qualitative feedback.

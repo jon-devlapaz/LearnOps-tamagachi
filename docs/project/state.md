@@ -2,18 +2,31 @@
 
 ## Snapshot
 
-- Product: LearnOps-tamagachi
-- Current branch focus: MVP delivery with drill flow, graph progression, and hosted deployment hardening
-- Active concerns: deployment reliability, onboarding clarity, evidence-backed product framing, and safe AI boundaries
+- Product: socratink
+- Current branch focus: implementing the three-phase node loop and four-state model as the MVP stabilization target
+- Architecture: cold attempt → targeted study → spaced re-drill, with four states (`locked → primed → drilled → solidified`)
+- Active concerns: three-phase loop implementation, spacing validation, graph state truthfulness, hosted deployment hardening
 - Hosted runtime: Vercel serverless
+- Session cap: moving from 35 min to 25 min
 - Operational workflow: narrow regressions can now be routed through `docs/codex/hotfix-workflow.md`
 
 ## Current Priorities
 
-- stabilize hosted user flows
-- refine drill UX and graph progression
+- implement the three-phase node loop end to end
+- enforce the four-state model with no invalid transitions
+- add spacing validation to prevent buffer-echo mastery
+- stabilize hosted user flows on Vercel
 - document research support for learning claims
 - establish repeatable agent workflows in-repo
+
+## Architecture Changes In Progress
+
+- The previous Study → Immediate Drill path is being deprecated in favor of the three-phase loop
+- Cold attempts are explicitly unscored (no classification, no tier/band)
+- `primed` is a new node state between `locked` and `drilled`
+- `solidified` can only result from a spaced re-drill after buffer flush
+- UX framework, progressive-disclosure, and post-drill-ux-spec have been rewritten (April 2026)
+- New strategic docs placed: `north-star.md`, `decision-principles.md`, `current-bets.md`
 
 ## Target User Signals
 
@@ -57,6 +70,21 @@
 - Decision: split the public web surface so the marketing site lives at `socratink.ai` and the hosted product lives at `app.socratink.ai`.
 - Why: the product now has distinct landing and app deployments, and collapsing both onto one hostname made routing and positioning ambiguous.
 - Consequence: hosted verification and future copy work should treat apex and `app.` as separate surfaces; the landing repo still needs its hardcoded app links updated to the new subdomain.
+
+### 2026-04-05
+
+- Decision: complete docs consolidation and product rename to socratink.
+- What changed:
+  - Renamed all product references from LearnOps-tamagachi to socratink across docs, config, and agent files.
+  - Replaced `docs/product/ux-framework.md`, `progressive-disclosure.md`, and `post-drill-ux-spec.md` with rewritten versions reflecting the three-phase loop and four-state model.
+  - Placed `north-star.md`, `decision-principles.md`, `current-bets.md` into `docs/project/` (moved from `docs/founder/`, which was removed).
+  - Rewrote `docs/project/mvp-happy-path.md` to reflect the 12-step three-phase loop flow.
+  - Updated `docs/codex/session-bootstrap.md` to reference the three-phase architecture.
+  - Added four-state compatibility flags to `docs/drill/graph-invariants.md`.
+  - Added interleaving and three-phase compatibility notes to `docs/product/graph-traversal.md`.
+  - Created `docs/research/` directory.
+- Missing: three documents referenced in the bootstrap were never created: `three-phase-loop-implementation-brief.md`, `research-prompts.md`, `research-prompt-8-reward-architecture.md`.
+- Consequence: the docs directory is now aligned with the April 2026 architecture. `graph-invariants.md` and `graph-traversal.md` are flagged for deeper rewrites in a follow-up session.
 
 ### 2026-04-03
 
