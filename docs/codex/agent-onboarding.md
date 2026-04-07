@@ -6,7 +6,7 @@ Canonical workflow, agent roles, and repo constraints live in [AGENTS.md](../../
 
 ## What This Repo Is
 
-LearnOps-tamagachi is an MVP-stage hosted learning product with:
+socratink is an MVP-stage hosted learning product with:
 
 - a drill engine
 - a knowledge graph UI

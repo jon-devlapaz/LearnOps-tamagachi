@@ -71,7 +71,7 @@ This repository supports a small multi-agent workflow for product, research, and
 
 ## Project-Specific Constraints
 
-- Product stage is MVP stabilization, not greenfield exploration.
+- Product stage is MVP stabilization targeting the three-phase node loop (cold attempt → targeted study → spaced re-drill) and the four-state model (`locked → primed → drilled → solidified`).
 - Backend changes must be evaluated for both local and deployed behavior.
 - Security-sensitive endpoints must be reviewed for SSRF and error leakage.
 - Research and product language must distinguish evidence, hypothesis, and speculation.

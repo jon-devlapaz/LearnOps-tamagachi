@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**LearnOps Tamagachi** is an MVP-stage hosted learning product, not just a standalone prototype. This repo contains both the deployable app and the `learnops/` prompt assets that drive extraction and drill behavior.
+**socratink** is an MVP-stage hosted learning product, not just a standalone prototype. This repo contains both the deployable app and the `learnops/` prompt assets that drive extraction and drill behavior.
 
 Canonical repo identity, workflow ownership, and agent constraints live in `AGENTS.md` and `docs/project/state.md`. This file is implementation-oriented and should stay focused on runtime shape and local development details.
 

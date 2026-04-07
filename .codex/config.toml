@@ -3,7 +3,7 @@
 sandbox_mode = "workspace-write"
 approval_policy = "on-request"
 [project]
-name = "LearnOps-tamagachi"
+name = "socratink"
 default_agent = "orchestrator"
 
 # These repo-root paths are mirrored under `.codex/` so both repo-root and
