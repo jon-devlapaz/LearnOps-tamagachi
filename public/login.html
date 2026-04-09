@@ -3,12 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7ece1">
+  <meta name="application-name" content="Socratink">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Socratink">
   <title>Socratink - The Socratic Canvas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=5">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=5">
+  <link rel="manifest" href="/manifest.webmanifest?v=1">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=6">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=6">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=6">
   <link rel="stylesheet" href="/css/login.css?v=1">
 </head>
 <body data-mode="signin">
@@ -20,9 +26,9 @@
   <main class="login-shell">
     <div class="login-stage">
       <div class="brand-lockup">
-        <img src="/apple-touch-icon.png?v=5" alt="Socratink brand mark" class="brand-mark">
-        <h1 class="brand-title">Socratink</h1>
-        <p class="brand-kicker">The Socratic Canvas</p>
+        <img src="/brand/socratink-mark-square.png?v=1" alt="Socratink brand mark" class="brand-mark">
+        <h1 class="brand-title">socratink</h1>
+        <p class="brand-kicker">the intelligence app for learners</p>
       </div>
 
       <section class="login-card" aria-labelledby="login-heading">
@@ -41,27 +47,16 @@
               </svg>
               <span id="google-label">Continue with Google</span>
             </a>
-          </div>
-
-          <div class="google-only-panel" aria-live="polite">
-            <p class="google-only-title">Google sign-in only for tonight&apos;s deploy.</p>
-            <p class="google-only-copy">
-              Use your Google account to sign in or create an account. Passwordless email sign-in is deferred until
-              session persistence is production-safe.
-            </p>
+            <a id="guest-continue-link" class="guest-button" href="/">
+              Continue as Guest
+            </a>
           </div>
 
           <div class="mode-copy">
-            <p id="mode-copy-text">Use your Google account to sign in or create an account.</p>
+            <p id="mode-copy-text">Choose Google sign-in or continue as guest to enter Socratink.</p>
           </div>
         </div>
       </section>
-
-      <footer class="login-footer">
-        <a href="/">Privacy</a>
-        <a href="/">Terms</a>
-        <a href="/">Support</a>
-      </footer>
     </div>
   </main>
 

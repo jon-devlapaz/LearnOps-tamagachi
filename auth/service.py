@@ -37,6 +37,7 @@ class AuthSessionState:
     auth_enabled: bool
     authenticated: bool
     user: AuthUser | None = None
+    guest_mode: bool = False
     sealed_session: str | None = None
     should_clear_cookie: bool = False
     error_reason: str | None = None
@@ -45,6 +46,7 @@ class AuthSessionState:
         return {
             "auth_enabled": self.auth_enabled,
             "authenticated": self.authenticated,
+            "guest_mode": self.guest_mode,
             "user": self.user.to_dict() if self.user else None,
         }
 

@@ -1386,30 +1386,14 @@ export function mountKnowledgeGraph({ container, detailEl, rawData, onNodeSelect
   };
 
   const findNextNodeSuggestion = (activeNodeId) => {
-    const now = Date.now();
     const allNodes = cy.nodes().toArray();
 
-    // Priority 1: a primed node whose spacing window has passed (ready to re-drill)
-    const reDrillReady = allNodes.find((n) => {
-      if (n.id() === activeNodeId) return false;
-      const d = n.data();
-      if (d.drillStatus !== 'primed') return false;
-      if (d.reDrillEligibleAfter && now < new Date(d.reDrillEligibleAfter).getTime()) return false;
-      return true;
-    });
-    if (reDrillReady) {
-      return {
-        id: reDrillReady.id(),
-        label: reDrillReady.data('fullLabel') || reDrillReady.data('label'),
-        action: 're-drill',
-      };
-    }
-
-    // Priority 2: an available locked subnode for a cold attempt
+    // Prefer opening another reachable node. The graph alone cannot verify
+    // interleaving truth, so it should not promise that a re-drill is ready.
     const coldCandidate = allNodes.find((n) => {
       if (n.id() === activeNodeId) return false;
       const d = n.data();
-      return d.type === 'subnode' && d.state === 'locked' && d.available === 1;
+      return d.available === 1 && d.state === 'locked' && (d.type === 'subnode' || d.type === 'backbone');
     });
     if (coldCandidate) {
       return {

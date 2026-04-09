@@ -4,7 +4,7 @@
   box-sizing: border-box;
 }
 
-body {
+body.analytics-page {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-body);

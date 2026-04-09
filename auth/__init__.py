@@ -1,4 +1,4 @@
-from .router import auth_router
+from .router import GUEST_COOKIE_NAME, GUEST_COOKIE_VALUE, auth_router
 from .service import (
     AuthConfigurationError,
     AuthSessionState,
@@ -12,6 +12,8 @@ __all__ = [
     "AuthConfigurationError",
     "AuthSessionState",
     "AuthUser",
+    "GUEST_COOKIE_NAME",
+    "GUEST_COOKIE_VALUE",
     "MagicAuthStartState",
     "WorkOSAuthService",
     "auth_router",

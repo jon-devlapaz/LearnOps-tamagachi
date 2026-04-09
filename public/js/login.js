@@ -29,9 +29,9 @@ function setMode(mode) {
   const resolved = mode === "signup" ? "signup" : "signin";
   body.dataset.mode = resolved;
   if (resolved === "signup") {
-    modeCopy.textContent = "Use your Google account to create an account.";
+    modeCopy.textContent = "Choose Google sign-up or continue as guest to enter Socratink.";
   } else {
-    modeCopy.textContent = "Use your Google account to sign in or create an account.";
+    modeCopy.textContent = "Choose Google sign-in or continue as guest to enter Socratink.";
   }
 }
 
@@ -42,6 +42,7 @@ function applyAuthErrorFromQuery() {
     access_denied: "Google sign-in was cancelled. You can try again.",
     user_cancelled: "Google sign-in was cancelled. You can try again.",
     authentication_failed: "We couldn't complete sign-in. Please try again.",
+    authentication_unavailable: "Google sign-in is not configured correctly right now. Continue as guest or try again later.",
     missing_code: "Sign-in did not complete. Please try again.",
     invalid_state: "Sign-in could not be verified safely. Please try again.",
   };
@@ -120,6 +121,7 @@ async function bootstrap() {
 
   const googleLink = document.getElementById("google-login-link");
   const googleLabel = document.getElementById("google-label");
+  const guestLink = document.getElementById("guest-continue-link");
 
   if (googleLink && googleLabel) {
     googleLink.href = `/auth/google?return_to=${encodeURIComponent(safeReturnTo())}`;
@@ -129,17 +131,32 @@ async function bootstrap() {
     });
   }
 
+  if (guestLink) {
+    guestLink.href = `/auth/guest?return_to=${encodeURIComponent(safeReturnTo())}`;
+  }
+
   try {
     const session = await fetchSession();
-    if (session.auth_enabled === false) {
-      setBanner("Authentication is not enabled in this environment yet.", "error");
-    } else if (session.authenticated) {
+    if (session.authenticated) {
       setBanner("You are already signed in. Redirecting...", "success");
       window.location.assign(safeReturnTo());
       return;
     }
+    if (session.guest_mode) {
+      setBanner("Guest mode is already active in this browser. Redirecting...", "success");
+      window.location.assign(safeReturnTo());
+      return;
+    }
+    if (session.auth_enabled === false) {
+      if (googleLink) {
+        googleLink.setAttribute("aria-disabled", "true");
+        googleLink.classList.add("is-disabled");
+        googleLink.removeAttribute("href");
+      }
+      setBanner("Google sign-in is not configured here yet. Continue as guest to enter.", "default");
+    }
   } catch (err) {
-    setBanner("Authentication is temporarily unavailable.", "error");
+    setBanner("Authentication is temporarily unavailable. Continue as guest or try Google sign-in again.", "error");
   }
 }
 

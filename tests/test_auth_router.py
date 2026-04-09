@@ -3,7 +3,7 @@ import unittest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from auth.router import auth_router, sanitize_return_to_path
+from auth.router import GUEST_COOKIE_NAME, auth_router, sanitize_return_to_path
 from auth.service import AuthSessionState, AuthUser
 
 
@@ -83,7 +83,7 @@ class AuthRouterTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.json(),
-            {"auth_enabled": False, "authenticated": False, "user": None},
+            {"auth_enabled": False, "authenticated": False, "guest_mode": False, "user": None},
         )
 
     def test_login_redirect_uses_sanitized_return_path(self):
@@ -108,7 +108,8 @@ class AuthRouterTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Socratink - The Socratic Canvas", response.text)
         self.assertIn("Continue with Google", response.text)
-        self.assertIn("Google sign-in only for tonight", response.text)
+        self.assertIn("Continue as Guest", response.text)
+        self.assertIn("Choose Google sign-in or continue as guest to enter Socratink.", response.text)
         self.assertNotIn("Email Address", response.text)
 
     def test_login_page_renders_without_file_assets(self):
@@ -125,10 +126,10 @@ class AuthRouterTests(unittest.TestCase):
     def test_callback_sets_cookie_and_redirects_to_return_to(self):
         service = FakeAuthService(enabled=True)
         client = build_client(service)
+        client.cookies.set("wos_oauth_state", "signed-state-token")
 
         response = client.get(
             "/auth/callback?code=abc123&state=nonce-123",
-            cookies={"wos_oauth_state": "signed-state-token"},
             follow_redirects=False,
         )
 
@@ -139,10 +140,10 @@ class AuthRouterTests(unittest.TestCase):
     def test_callback_error_redirects_back_to_login(self):
         service = FakeAuthService(enabled=True)
         client = build_client(service)
+        client.cookies.set("wos_oauth_state", "signed-state-token")
 
         response = client.get(
             "/auth/callback?error=access_denied&state=nonce-123",
-            cookies={"wos_oauth_state": "signed-state-token"},
             follow_redirects=False,
         )
 
@@ -153,10 +154,10 @@ class AuthRouterTests(unittest.TestCase):
         service = FakeAuthService(enabled=True)
         service.oauth_state_valid = False
         client = build_client(service)
+        client.cookies.set("wos_oauth_state", "signed-state-token")
 
         response = client.get(
             "/auth/callback?code=abc123&state=bad-state",
-            cookies={"wos_oauth_state": "signed-state-token"},
             follow_redirects=False,
         )
 
@@ -166,16 +167,49 @@ class AuthRouterTests(unittest.TestCase):
     def test_logout_clears_cookie(self):
         service = FakeAuthService(enabled=True)
         client = build_client(service)
+        client.cookies.set("wos_session", "sealed-abc")
+        client.cookies.set(GUEST_COOKIE_NAME, "guest")
 
-        response = client.post(
-            "/api/auth/logout",
-            cookies={"wos_session": "sealed-abc"},
-        )
+        response = client.post("/api/auth/logout")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["ok"], True)
         self.assertEqual(service.last_logout_cookie, "sealed-abc")
         self.assertIn("Max-Age=0", response.headers.get("set-cookie", ""))
+        self.assertIn(f"{GUEST_COOKIE_NAME}=", response.headers.get("set-cookie", ""))
+
+    def test_api_me_returns_guest_mode_when_guest_cookie_present(self):
+        service = FakeAuthService(enabled=True)
+        client = build_client(service)
+        client.cookies.set(GUEST_COOKIE_NAME, "guest")
+
+        response = client.get("/api/me")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {"auth_enabled": True, "authenticated": False, "guest_mode": True, "user": None},
+        )
+
+    def test_login_redirects_guest_sessions_back_into_app(self):
+        service = FakeAuthService(enabled=True)
+        client = build_client(service)
+        client.cookies.set(GUEST_COOKIE_NAME, "guest")
+
+        response = client.get("/login?return_to=/library", follow_redirects=False)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["location"], "/library")
+
+    def test_guest_entry_sets_cookie_and_redirects(self):
+        service = FakeAuthService(enabled=True)
+        client = build_client(service)
+
+        response = client.get("/auth/guest?return_to=/library", follow_redirects=False)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["location"], "/library")
+        self.assertIn(f"{GUEST_COOKIE_NAME}=guest", response.headers.get("set-cookie", ""))
 
     def test_magic_auth_send_is_disabled(self):
         service = FakeAuthService(enabled=True)

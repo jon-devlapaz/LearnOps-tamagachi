@@ -7,19 +7,19 @@ import socket
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qs, urlparse
-from urllib.request import Request, urlopen
+from urllib.parse import parse_qs, quote, urlparse
+from urllib.request import Request as UrlRequest, urlopen
 
 from html import unescape
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from starlette.responses import Response
+from starlette.responses import JSONResponse, RedirectResponse, Response
 
-from auth import auth_router, build_auth_service_from_env
+from auth import GUEST_COOKIE_NAME, GUEST_COOKIE_VALUE, auth_router, build_auth_service_from_env
 from ai_service import (
     GeminiRateLimitError,
     GeminiServiceError,
@@ -36,6 +36,13 @@ app = FastAPI()
 app.state.auth_service = build_auth_service_from_env()
 logger = logging.getLogger(__name__)
 DRILL_CHAT_LOG_PATH = Path(__file__).parent / "logs/drill-chat-transcripts.jsonl"
+PROTECTED_HTML_PATHS = frozenset({"/", "/index.html"})
+PROTECTED_API_PATHS = frozenset({
+    "/api/drill",
+    "/api/extract",
+    "/api/extract-url",
+    "/api/extract-youtube",
+})
 
 _cors_origins = os.environ.get(
     "CORS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000"
@@ -59,6 +66,68 @@ async def block_sensitive_files(request, call_next):
         return Response(status_code=404)
     if path.endswith(".py"):
         return Response(status_code=404)
+    return await call_next(request)
+
+
+def _request_return_to(request: Request) -> str:
+    path = request.url.path or "/"
+    if request.url.query:
+        return f"{path}?{request.url.query}"
+    return path
+
+
+def _is_protected_html_request(request: Request) -> bool:
+    if request.method not in {"GET", "HEAD"}:
+        return False
+    path = request.url.path
+    if path in PROTECTED_HTML_PATHS:
+        return True
+    return path.endswith(".html") and path != "/login.html"
+
+
+def _is_protected_api_request(request: Request) -> bool:
+    path = request.url.path
+    if not path.startswith("/api/"):
+        return False
+    if path in {"/api/health", "/api/me"}:
+        return False
+    if path.startswith("/api/auth/"):
+        return False
+    return path.startswith("/api/analytics/") or path in PROTECTED_API_PATHS
+
+
+def _has_app_entry_session(request: Request) -> bool:
+    if request.cookies.get(GUEST_COOKIE_NAME) == GUEST_COOKIE_VALUE:
+        return True
+    service = getattr(request.app.state, "auth_service", None)
+    if service is None:
+        return False
+    sealed_session = request.cookies.get(service.cookie_name)
+    try:
+        state = service.load_session(sealed_session)
+    except Exception:
+        logger.exception("Auth session gate failed for path=%s", request.url.path)
+        return False
+    return bool(getattr(state, "authenticated", False))
+
+
+@app.middleware("http")
+async def require_login_or_guest_entry(request: Request, call_next):
+    path = request.url.path
+    if path == "/login.html":
+        query = f"?{request.url.query}" if request.url.query else ""
+        return RedirectResponse(url=f"/login{query}", status_code=302)
+    if _is_protected_html_request(request) or _is_protected_api_request(request):
+        if not _has_app_entry_session(request):
+            if path.startswith("/api/"):
+                return JSONResponse(
+                    {"detail": "Choose Google sign-in or continue as guest before using the app."},
+                    status_code=401,
+                )
+            return RedirectResponse(
+                url=f"/login?return_to={quote(_request_return_to(request), safe='')}",
+                status_code=302,
+            )
     return await call_next(request)
 
 
@@ -313,7 +382,7 @@ def extract_url(req: UrlExtractRequest):
         raise HTTPException(status_code=400, detail="Cannot fetch internal addresses.")
 
     try:
-        request = Request(
+        request = UrlRequest(
             url,
             headers={
                 "User-Agent": "Mozilla/5.0 (compatible; socratink/1.0; +https://localhost)"

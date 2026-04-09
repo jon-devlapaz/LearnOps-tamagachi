@@ -3,8 +3,12 @@ function safeReturnTo() {
   return next.startsWith('/') ? next : '/';
 }
 
-function loginHref() {
-  return `/login?return_to=${encodeURIComponent(safeReturnTo())}`;
+export function buildLoginHref(returnTo = safeReturnTo()) {
+  return `/login?return_to=${encodeURIComponent(returnTo)}`;
+}
+
+export function redirectToLogin(returnTo = safeReturnTo()) {
+  window.location.assign(buildLoginHref(returnTo));
 }
 
 export async function fetchAuthSession() {
@@ -42,13 +46,10 @@ function applyAuthUi(session) {
   const status = document.getElementById('auth-status');
   if (!controls || !loginLink || !logoutBtn || !status) return;
 
-  if (!session?.auth_enabled) {
-    controls.hidden = true;
-    return;
-  }
-
   controls.hidden = false;
-  loginLink.href = loginHref();
+  loginLink.href = buildLoginHref();
+  loginLink.textContent = 'Save & Sync';
+  logoutBtn.textContent = 'Log Out';
 
   if (session.authenticated && session.user) {
     const label = session.user.first_name || session.user.email || 'Signed in';
@@ -56,9 +57,15 @@ function applyAuthUi(session) {
     status.textContent = label;
     logoutBtn.hidden = false;
     loginLink.hidden = true;
-  } else {
+  } else if (session?.guest_mode) {
     status.hidden = false;
     status.textContent = 'Guest mode';
+    logoutBtn.hidden = false;
+    logoutBtn.textContent = 'Exit Guest';
+    loginLink.hidden = !session?.auth_enabled;
+  } else {
+    status.hidden = false;
+    status.textContent = 'Login required';
     logoutBtn.hidden = true;
     loginLink.hidden = false;
   }
@@ -72,7 +79,7 @@ export async function bootstrapAuthUi() {
       logoutBtn.disabled = true;
       try {
         await logout();
-        window.location.reload();
+        redirectToLogin('/');
       } catch (err) {
         console.warn('Logout failed.', err);
       } finally {

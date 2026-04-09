@@ -2,7 +2,8 @@ import { Bus } from './bus.js';
 import { GEO, easeInOutCubic, interpCoords, coordsToPoints } from './geo.js';
 import { Morph, crystalPolygons } from './morph.js';
 import { escHtml, mountKnowledgeGraph } from './graph-view.js?v=2';
-import { bootstrapAuthUi } from './auth.js';
+import { bootstrapAuthUi, buildLoginHref, fetchAuthSession, logout, redirectToLogin } from './auth.js';
+import { mountLearnerAnalyticsDashboard } from './learner-analytics.js?v=3';
 import {
   STATES, generateId, loadConcepts, saveConcepts, normalizeGraphData,
   getActiveId, setActiveId, getActiveConcept,
@@ -19,7 +20,7 @@ import { recordExtractRun, recordDrillRun } from './browser-analytics.js';
 
 const App = (() => {
   const THEME_STORAGE_KEY = 'learnops-theme';
-  const PHASE_B_SESSION_KEY = 'learnops-phase-b-session';
+  const PHASE_B_SESSION_KEY_PREFIX = 'learnops-phase-b-session';
   const PHASE_B_RESUME_KEY = 'learnops-phase-b-resume';
   let currentGraphController = null;
   let currentMapMode = 'study';
@@ -29,6 +30,12 @@ const App = (() => {
   let activeTutorialTarget = null;
   let themePreference = 'light';
   let currentPrimaryNav = 'nav-dashboard';
+  let learnerAnalyticsDashboard = null;
+  let sessionState = getDefaultPhaseBSessionState();
+
+  function getPhaseBSessionStorageKey(conceptId = getActiveId()) {
+    return conceptId ? `${PHASE_B_SESSION_KEY_PREFIX}:${conceptId}` : PHASE_B_SESSION_KEY_PREFIX;
+  }
 
   function getDefaultPhaseBSessionState() {
     return {
@@ -40,9 +47,9 @@ const App = (() => {
     };
   }
 
-  function loadPhaseBSessionState() {
+  function loadPhaseBSessionState(conceptId = getActiveId()) {
     try {
-      const raw = sessionStorage.getItem(PHASE_B_SESSION_KEY);
+      const raw = sessionStorage.getItem(getPhaseBSessionStorageKey(conceptId));
       if (!raw) return getDefaultPhaseBSessionState();
       const parsed = JSON.parse(raw);
       const visitedNodeIds = Array.isArray(parsed?.visitedNodeIds)
@@ -61,9 +68,9 @@ const App = (() => {
     }
   }
 
-  function persistPhaseBSessionState(sessionState) {
+  function persistPhaseBSessionState(sessionState, conceptId = getActiveId()) {
     try {
-      sessionStorage.setItem(PHASE_B_SESSION_KEY, JSON.stringify(sessionState));
+      sessionStorage.setItem(getPhaseBSessionStorageKey(conceptId), JSON.stringify(sessionState));
     } catch (err) {
       console.warn('Unable to persist Phase B session state.', err);
     }
@@ -713,9 +720,8 @@ const App = (() => {
           <canvas class="eo-particle-canvas"></canvas>
           <div class="eo-glow-blob"></div>
           <header class="eo-header">
-            <span class="eo-brand-dot"></span>
+            <img src="/brand/socratink-mark-square.png?v=1" alt="" class="eo-brand-mark" aria-hidden="true">
             <h1 class="eo-brand">socratink</h1>
-            <span class="eo-brand-dot"></span>
           </header>
           <div class="eo-focal">
             <div class="eo-radar"></div>
@@ -1104,21 +1110,30 @@ const App = (() => {
     }
   }
 
+  function syncSessionStateForActiveConcept(conceptId = getActiveId()) {
+    sessionState = loadPhaseBSessionState(conceptId);
+  }
+
+  function activateConceptSelection(id) {
+    setActiveId(id);
+    syncSessionStateForActiveConcept(id);
+    const concept = loadConcepts().find(c => c.id === id);
+    if (!concept) return null;
+
+    renderHero(concept);
+    applyControlsForState(concept.state, concept);
+    renderGrid();
+    renderConceptList();
+    learnerAnalyticsDashboard?.loadDashboard?.();
+    return concept;
+  }
+
   function selectConcept(id) {
     hideContentOverlay();
     hideMapView();
     setNavActive('nav-dashboard');
-    setActiveId(id);
-    const concept = loadConcepts().find(c => c.id === id);
+    const concept = activateConceptSelection(id);
     if (!concept) return;
-
-    renderHero(concept);
-
-    // Restore controls for this concept's state
-    applyControlsForState(concept.state, concept);
-
-    renderGrid();       // updates selection highlight
-    renderConceptList();
   }
 
   // ── 13. setState + controls ────────────────────────────────
@@ -1541,7 +1556,11 @@ const App = (() => {
 
     clearSettingsPanel();
     setNavActive('nav-dashboard');
+    const analyticsView = document.getElementById('analytics-view');
+    const settingsView = document.getElementById('settings-view');
     if (libraryView) libraryView.classList.remove('visible');
+    if (analyticsView) analyticsView.classList.remove('visible');
+    if (settingsView) settingsView.classList.remove('visible');
     heroCard.style.display = 'none';
     mapView.classList.add('visible');
     setMapShellOpen(true);
@@ -1552,7 +1571,7 @@ const App = (() => {
     scheduleTutorialRefresh();
   }
 
-  function hideMapView() {
+  function teardownMapView({ showHero = false, navId = null } = {}) {
     const mapView = document.getElementById('map-view');
     const heroCard = document.querySelector('.hero-card');
     if (drillState.active || drillState.pending || drillState.node) {
@@ -1564,9 +1583,24 @@ const App = (() => {
     }
     if (mapView) mapView.classList.remove('visible');
     setMapShellOpen(false);
-    if (heroCard) heroCard.style.display = 'flex';
-    setNavActive('nav-dashboard');
+    if (heroCard) heroCard.style.display = showHero ? 'flex' : 'none';
+    if (navId) setNavActive(navId);
     scheduleTutorialRefresh();
+  }
+
+  function hideMapView() {
+    teardownMapView({ showHero: true, navId: 'nav-dashboard' });
+  }
+
+  function hidePrimaryViews() {
+    const heroCard = document.querySelector('.hero-card');
+    const libraryView = document.getElementById('library-view');
+    const analyticsView = document.getElementById('analytics-view');
+    const settingsView = document.getElementById('settings-view');
+    if (heroCard) heroCard.style.display = 'none';
+    if (libraryView) libraryView.classList.remove('visible');
+    if (analyticsView) analyticsView.classList.remove('visible');
+    if (settingsView) settingsView.classList.remove('visible');
   }
 
   function setMapMode(mode = 'study') {
@@ -1602,7 +1636,7 @@ const App = (() => {
 
   function setNavActive(id) {
     currentPrimaryNav = id;
-    ['nav-dashboard', 'nav-library', 'nav-analytics'].forEach((navId) => {
+    ['nav-dashboard', 'nav-library', 'nav-analytics', 'nav-settings'].forEach((navId) => {
       const el = document.getElementById(navId);
       if (el) el.classList.toggle('active', navId === currentPrimaryNav);
     });
@@ -1610,18 +1644,11 @@ const App = (() => {
 
   function showDashboard() {
     setNavActive('nav-dashboard');
-    const libraryView = document.getElementById('library-view');
-    const mapView = document.getElementById('map-view');
     const heroCard = document.querySelector('.hero-card');
 
     clearSettingsPanel();
-    if (libraryView) libraryView.classList.remove('visible');
-    if (mapView) mapView.classList.remove('visible');
-    setMapShellOpen(false);
-    if (currentGraphController) {
-      currentGraphController.destroy();
-      currentGraphController = null;
-    }
+    teardownMapView();
+    hidePrimaryViews();
     if (heroCard) heroCard.style.display = 'flex';
     if (window.innerWidth < 900) closeDrawer();
     scheduleTutorialRefresh();
@@ -1711,17 +1738,11 @@ const App = (() => {
   function showLibrary() {
     setNavActive('nav-library');
     const libraryView = document.getElementById('library-view');
-    const mapView = document.getElementById('map-view');
-    const heroCard = document.querySelector('.hero-card');
     const content = document.getElementById('library-content');
 
     clearSettingsPanel();
-    if (mapView) mapView.classList.remove('visible');
-    setMapShellOpen(false);
-    if (currentGraphController) {
-      currentGraphController.destroy();
-      currentGraphController = null;
-    }
+    teardownMapView();
+    hidePrimaryViews();
     const concepts = loadConcepts().filter(c => c.graphData);
 
     let html = `
@@ -1776,7 +1797,6 @@ const App = (() => {
     html += `</div>`;
     content.innerHTML = html;
 
-    if (heroCard) heroCard.style.display = 'none';
     libraryView.classList.add('visible');
     if (window.innerWidth < 900) closeDrawer();
     scheduleTutorialRefresh();
@@ -1784,15 +1804,18 @@ const App = (() => {
 
   function showAnalytics() {
     setNavActive('nav-analytics');
+    teardownMapView();
+    hidePrimaryViews();
+    const analyticsView = document.getElementById('analytics-view');
+    if (analyticsView) analyticsView.classList.add('visible');
+    learnerAnalyticsDashboard?.loadDashboard?.();
     if (window.innerWidth < 900) closeDrawer();
-    window.location.href = '/ai-runs-dashboard.html';
+    scheduleTutorialRefresh();
   }
 
   function hideLibrary() {
     const libraryView = document.getElementById('library-view');
-    const heroCard = document.querySelector('.hero-card');
     if (libraryView) libraryView.classList.remove('visible');
-    if (heroCard) heroCard.style.display = 'flex';
     scheduleTutorialRefresh();
   }
 
@@ -1865,6 +1888,14 @@ const App = (() => {
   themePreference = getStoredThemePreference();
   applyThemePreference(themePreference, { persist: false });
   void bootstrapAuthUi();
+  learnerAnalyticsDashboard = mountLearnerAnalyticsDashboard({
+    autoLoad: false,
+    onConceptChange: (nextId) => {
+      if (!nextId) return;
+      activateConceptSelection(nextId);
+      setNavActive('nav-analytics');
+    },
+  });
   bindMapModeControls();
   renderGrid();
   renderConceptList();
@@ -1884,16 +1915,13 @@ const App = (() => {
   if (!toLoad) {
     showEmptyState();
   } else {
-    setActiveId(toLoad.id);
-    renderHero(toLoad);
-    applyControlsForState(toLoad.state, toLoad);
-    renderGrid(); // re-render to apply .selected class
+    activateConceptSelection(toLoad.id);
     if (resumeConcept && resumeConcept.id === toLoad.id) {
       showMapView(toLoad);
     }
   }
 
-  let sessionState = loadPhaseBSessionState();
+  sessionState = loadPhaseBSessionState(getActiveId());
 
   let drillState = {
     active: false,
@@ -3002,6 +3030,277 @@ const App = (() => {
     });
   }
 
+  function getStoredGeminiKey() {
+    try {
+      return localStorage.getItem('gemini_key') || '';
+    } catch (err) {
+      console.warn('Gemini key unavailable.', err);
+      return '';
+    }
+  }
+
+  function setStatusBadge(target, tone, text) {
+    if (!target) return;
+    target.className = `settings-badge ${tone}`;
+    target.textContent = text;
+  }
+
+  function renderAccountBody(container, session) {
+    if (!container) return;
+
+    if (session?.authenticated && session.user) {
+      const label = session.user.first_name || session.user.email || 'Signed in';
+      container.innerHTML = `
+        <div class="settings-account-summary">
+          <div class="settings-account-title">Signed in as ${escHtml(label)}</div>
+          <p class="settings-subtext">This browser has an authenticated session. Logging out will send you back to the login decision screen.</p>
+        </div>
+        <div class="settings-actions">
+          <button id="settings-logout-btn" class="settings-test" type="button">Log Out</button>
+        </div>
+      `;
+      const logoutBtn = container.querySelector('#settings-logout-btn');
+      logoutBtn?.addEventListener('click', async () => {
+        logoutBtn.disabled = true;
+        try {
+          await logout();
+          redirectToLogin('/');
+        } catch (err) {
+          console.warn('Logout failed.', err);
+          logoutBtn.disabled = false;
+        }
+      });
+      return;
+    }
+
+    if (session?.guest_mode) {
+      container.innerHTML = `
+        <div class="settings-account-summary">
+          <div class="settings-account-title">Guest mode is active</div>
+          <p class="settings-subtext">This browser passed through the login wall as a guest. You can keep testing locally, upgrade into Google sign-in, or exit back to login.</p>
+        </div>
+        <div class="settings-actions">
+          ${session.auth_enabled ? `<a class="auth-link" href="${escHtml(buildLoginHref('/'))}">Continue with Google</a>` : ''}
+          <button id="settings-logout-btn" class="settings-test" type="button">Exit Guest</button>
+        </div>
+      `;
+      const logoutBtn = container.querySelector('#settings-logout-btn');
+      logoutBtn?.addEventListener('click', async () => {
+        logoutBtn.disabled = true;
+        try {
+          await logout();
+          redirectToLogin('/');
+        } catch (err) {
+          console.warn('Logout failed.', err);
+          logoutBtn.disabled = false;
+        }
+      });
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="settings-account-summary">
+        <div class="settings-account-title">Login required</div>
+        <p class="settings-subtext">This app now requires an entry decision before use. Choose Google sign-in or guest mode to continue.</p>
+      </div>
+      <div class="settings-actions">
+        <a class="auth-link" href="${escHtml(buildLoginHref('/'))}">${session?.auth_enabled ? 'Continue with Google' : 'Return to Login'}</a>
+      </div>
+    `;
+  }
+
+  async function renderSettingsView() {
+    const settingsContent = document.getElementById('settings-content');
+    if (!settingsContent) return;
+
+    settingsContent.innerHTML = `
+      <div class="settings-shell">
+        <header class="settings-page-header">
+          <div class="settings-page-kicker">Settings</div>
+          <h2 class="settings-page-title">Setup for a truthful test run</h2>
+          <p class="settings-page-copy">Keep this page focused on what a friends-and-family tester needs: backend reachability, Gemini key access, and account state.</p>
+        </header>
+
+        <div class="settings-page-grid">
+          <article class="settings-page-card">
+            <div class="settings-section-header">
+              <h4>Runtime Access</h4>
+              <span class="settings-dot" id="settings-dot"></span>
+            </div>
+            <p class="settings-subtext">Backend reachability and key availability are separate checks. A green backend alone does not prove extract or drill is fully working.</p>
+            <div class="settings-health-list">
+              <div class="settings-health-row">
+                <span class="settings-health-label">Backend</span>
+                <span id="settings-backend-badge" class="settings-badge neutral">Checking…</span>
+              </div>
+              <p id="settings-backend-detail" class="settings-subtext">Testing the local API.</p>
+              <div class="settings-health-row">
+                <span class="settings-health-label">AI Access</span>
+                <span id="settings-ai-badge" class="settings-badge neutral">Checking…</span>
+              </div>
+              <p id="settings-ai-detail" class="settings-subtext">Looking for a server key or a locally saved Gemini key.</p>
+            </div>
+            <div class="settings-actions">
+              <button id="settings-test-btn" class="settings-test" type="button">Test Backend</button>
+            </div>
+            <div id="settings-status" class="settings-status"></div>
+          </article>
+
+          <article class="settings-page-card">
+            <div class="settings-section-header">
+              <h4>Gemini API Key</h4>
+            </div>
+            <p class="settings-subtext">This key is stored only in this browser. If the server already has <code>GEMINI_API_KEY</code>, the app can use that instead.</p>
+            <div class="settings-input-wrap">
+              <input type="password" id="settings-key-input" class="settings-input" placeholder="Paste Gemini API key" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="settings-actions">
+              <button id="settings-key-save" class="settings-test" type="button">Save Key</button>
+              <button id="settings-key-remove" class="settings-test" type="button">Remove Key</button>
+            </div>
+            <div id="settings-key-status" class="settings-status"></div>
+          </article>
+
+          <article class="settings-page-card">
+            <div class="settings-section-header">
+              <h4>Account</h4>
+            </div>
+            <p class="settings-subtext">Every tester now enters through login first. This panel shows whether this browser is signed in, in guest mode, or needs to re-enter through the login wall.</p>
+            <div id="settings-account-body" class="settings-account-body">
+              <div class="settings-account-summary">
+                <div class="settings-account-title">Loading account state…</div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    `;
+
+    const dot = settingsContent.querySelector('#settings-dot');
+    const testBtn = settingsContent.querySelector('#settings-test-btn');
+    const statusBox = settingsContent.querySelector('#settings-status');
+    const backendBadge = settingsContent.querySelector('#settings-backend-badge');
+    const backendDetail = settingsContent.querySelector('#settings-backend-detail');
+    const aiBadge = settingsContent.querySelector('#settings-ai-badge');
+    const aiDetail = settingsContent.querySelector('#settings-ai-detail');
+    const keyInput = settingsContent.querySelector('#settings-key-input');
+    const keySave = settingsContent.querySelector('#settings-key-save');
+    const keyRemove = settingsContent.querySelector('#settings-key-remove');
+    const keyStatus = settingsContent.querySelector('#settings-key-status');
+    const accountBody = settingsContent.querySelector('#settings-account-body');
+
+    const refreshAiAccessUi = ({ backendReachable = false, serverKeyConfigured = false } = {}) => {
+      const localKey = getStoredGeminiKey();
+      if (!backendReachable) {
+        setStatusBadge(aiBadge, 'danger', 'Blocked');
+        aiDetail.textContent = 'The backend is unreachable, so extract and drill calls cannot run from this browser yet.';
+        return;
+      }
+      if (serverKeyConfigured) {
+        setStatusBadge(aiBadge, 'success', 'Server key active');
+        aiDetail.textContent = 'The server has a Gemini key configured. This browser does not need its own key to try extraction.';
+        return;
+      }
+      if (localKey) {
+        setStatusBadge(aiBadge, 'success', 'Local key saved');
+        aiDetail.textContent = 'This browser has a local Gemini key saved. The first real extract or drill still confirms provider access.';
+        return;
+      }
+      setStatusBadge(aiBadge, 'neutral', 'Needs key');
+      aiDetail.textContent = 'No server key is configured and this browser has no saved Gemini key yet.';
+    };
+
+    const refreshBackendStatus = async () => {
+      testBtn.disabled = true;
+      testBtn.textContent = 'Testing…';
+      if (statusBox) {
+        statusBox.textContent = '';
+      }
+      try {
+        const response = await fetch('/api/health');
+        if (!response.ok) throw new Error(`Status ${response.status}`);
+        const data = await response.json();
+        dot?.classList.add('connected');
+        dot?.classList.remove('error');
+        setStatusBadge(backendBadge, 'success', 'Connected');
+        backendDetail.textContent = 'The app can reach the backend from this browser.';
+        refreshAiAccessUi({ backendReachable: true, serverKeyConfigured: Boolean(data.server_key_configured) });
+        if (statusBox) {
+          statusBox.textContent = data.server_key_configured
+            ? 'Backend reachable. Server-managed Gemini access is available.'
+            : 'Backend reachable. Add a local Gemini key below or configure one on the server.';
+          statusBox.style.color = 'var(--success)';
+        }
+      } catch (err) {
+        console.warn('Backend health check failed.', err);
+        dot?.classList.add('error');
+        dot?.classList.remove('connected');
+        setStatusBadge(backendBadge, 'danger', 'Unavailable');
+        backendDetail.textContent = 'Cannot reach the backend from this browser. Start the API before testing extract or drill.';
+        refreshAiAccessUi({ backendReachable: false, serverKeyConfigured: false });
+        if (statusBox) {
+          statusBox.textContent = 'Backend check failed. Start the API and try again.';
+          statusBox.style.color = 'var(--danger)';
+        }
+      } finally {
+        testBtn.disabled = false;
+        testBtn.textContent = 'Test Backend';
+      }
+    };
+
+    keyInput.value = getStoredGeminiKey();
+
+    keySave?.addEventListener('click', () => {
+      const nextValue = keyInput.value.trim();
+      if (!nextValue) {
+        keyStatus.textContent = 'Enter a Gemini key before saving.';
+        keyStatus.style.color = 'var(--danger)';
+        return;
+      }
+      localStorage.setItem('gemini_key', nextValue);
+      keyStatus.textContent = 'Key saved to this browser.';
+      keyStatus.style.color = 'var(--success)';
+      refreshAiAccessUi({
+        backendReachable: backendBadge?.textContent === 'Connected',
+        serverKeyConfigured: aiBadge?.textContent === 'Server key active',
+      });
+    });
+
+    keyRemove?.addEventListener('click', () => {
+      localStorage.removeItem('gemini_key');
+      keyInput.value = '';
+      keyStatus.textContent = 'Local Gemini key removed from this browser.';
+      keyStatus.style.color = 'var(--text-sub)';
+      refreshAiAccessUi({
+        backendReachable: backendBadge?.textContent === 'Connected',
+        serverKeyConfigured: aiBadge?.textContent === 'Server key active',
+      });
+    });
+
+    testBtn?.addEventListener('click', refreshBackendStatus);
+
+    try {
+      const session = await fetchAuthSession();
+      renderAccountBody(accountBody, session);
+    } catch (err) {
+      console.warn('Settings account state unavailable.', err);
+      renderAccountBody(accountBody, { auth_enabled: false, authenticated: false, guest_mode: false });
+    }
+
+    await refreshBackendStatus();
+  }
+
+  function showSettings() {
+    setNavActive('nav-settings');
+    teardownMapView();
+    hidePrimaryViews();
+    const settingsView = document.getElementById('settings-view');
+    if (settingsView) settingsView.classList.add('visible');
+    void renderSettingsView();
+    if (window.innerWidth < 900) closeDrawer();
+    scheduleTutorialRefresh();
+  }
+
   return {
     toggleDrawer, openDrawer, closeDrawer,
     cancelDrill, startDrill, startDrillFromMap: () => {
@@ -3052,7 +3351,7 @@ const App = (() => {
     extract, drill, drillFail, drillPass, consolidate,
     fastForward,
     hideMapView, setMapMode, toggleCluster,
-    showLibrary, hideLibrary, showDashboard, showAnalytics,
+    showLibrary, hideLibrary, showDashboard, showAnalytics, showSettings,
     importStarterMap,
     toggleTheme, runHeroAction
   };
@@ -3060,113 +3359,4 @@ const App = (() => {
 })();
 window.App = App;
 window.SocratinkApp = App;
-
-function startSettings() {
-  const triggerArea = document.getElementById('add-trigger-area');
-  const settingsBtn = document.getElementById('nav-settings');
-  const existingPanel = triggerArea?.querySelector('.settings-panel');
-
-  if (existingPanel) {
-    if (settingsBtn) delete settingsBtn.dataset.engaged;
-    App.closeDrawer();
-    App.renderAddTrigger();
-    return;
-  }
-
-  if (settingsBtn) settingsBtn.dataset.engaged = 'true';
-  App.openDrawer();
-  triggerArea.style.overflowY = 'auto';
-  triggerArea.innerHTML = `
-    <div class="settings-panel">
-      <div class="settings-header">
-        <div class="settings-header-text">
-          <h3>Settings</h3>
-          <p class="settings-subtext">Configure your pipeline integrations.</p>
-        </div>
-        <button class="settings-close-btn" onclick="delete document.getElementById('nav-settings')?.dataset.engaged; App.closeDrawer(); App.renderAddTrigger();" aria-label="Close settings">×</button>
-      </div>
-
-      <div class="settings-box">
-        <div class="settings-section-header">
-          <h4>Backend</h4>
-          <span class="settings-dot" id="settings-dot"></span>
-        </div>
-        <p class="settings-subtext">Start the server with <code>uvicorn main:app --reload</code>.</p>
-        <div class="settings-actions">
-          <button id="settings-test-btn" class="settings-test">Test Connection</button>
-        </div>
-        <div id="settings-status" class="settings-status"></div>
-      </div>
-
-      <div class="settings-box" id="key-box" style="margin-top:20px; display:none;">
-        <div class="settings-section-header">
-          <h4>Gemini API Key</h4>
-        </div>
-        <p class="settings-subtext">No server key detected. Enter your own to enable extraction.</p>
-        <div class="settings-input-wrap">
-          <input type="password" id="settings-key-input" class="settings-input" placeholder="Paste Gemini API key" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="settings-actions">
-          <button id="settings-key-save" class="settings-save">Save Key</button>
-        </div>
-        <div id="settings-key-status" class="settings-status"></div>
-      </div>
-
-    </div>
-  `;
-
-  App.openDrawer();
-
-  const dot = triggerArea.querySelector('#settings-dot');
-  const testBtn = triggerArea.querySelector('#settings-test-btn');
-  const statusBox = triggerArea.querySelector('#settings-status');
-  const keyBox = triggerArea.querySelector('#key-box');
-  const keyInput = triggerArea.querySelector('#settings-key-input');
-  const keySave = triggerArea.querySelector('#settings-key-save');
-  const keyStatus = triggerArea.querySelector('#settings-key-status');
-
-  // Pre-fill saved key if present
-  const saved = localStorage.getItem('gemini_key');
-  if (saved) keyInput.value = saved;
-
-  keySave.addEventListener('click', () => {
-    const val = keyInput.value.trim();
-    if (!val) return;
-    localStorage.setItem('gemini_key', val);
-    keyStatus.textContent = 'Key saved.';
-    keyStatus.style.color = 'var(--success)';
-  });
-
-  // Test connection and reveal key input only if server has no key of its own
-  async function testConnection() {
-    testBtn.disabled = true;
-    testBtn.textContent = 'Testing…';
-    try {
-      const res = await fetch('/api/health');
-      if (!res.ok) throw new Error(`Status ${res.status}`);
-      const data = await res.json();
-      dot.classList.add('connected');
-      dot.classList.remove('error');
-      if (data.server_key_configured) {
-        statusBox.textContent = 'Backend connected. Server key active.';
-        keyBox.style.display = 'none';
-      } else {
-        statusBox.textContent = 'Backend connected. No server key — use your own below.';
-        keyBox.style.display = 'block';
-      }
-      statusBox.style.color = 'var(--success)';
-    } catch {
-      dot.classList.add('error');
-      dot.classList.remove('connected');
-      statusBox.textContent = 'Cannot reach backend. Is uvicorn running?';
-      statusBox.style.color = 'var(--danger)';
-    } finally {
-      testBtn.disabled = false;
-      testBtn.textContent = 'Test Connection';
-    }
-  }
-
-  testBtn.addEventListener('click', testConnection);
-}
-
-window.startSettings = startSettings;
+window.startSettings = () => App.showSettings();

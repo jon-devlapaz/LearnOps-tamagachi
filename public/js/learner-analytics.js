@@ -2,21 +2,45 @@ import { loadConcepts, getActiveId, setActiveId } from './store.js';
 import { escHtml, transformKnowledgeMapToGraph } from './graph-view.js?v=2';
 import { buildBrowserLearnerSummaryPayload } from './browser-analytics.js';
 
-const conceptSelect = document.getElementById('concept-select');
-const statusChip = document.getElementById('status-chip');
-const statusMeta = document.getElementById('status-meta');
-const refreshButton = document.getElementById('refresh-button');
+let conceptSelect = null;
+let statusChip = null;
+let statusMeta = null;
+let refreshButton = null;
 
-const metricGrid = document.getElementById('metric-grid');
-const truthOverview = document.getElementById('truth-overview');
-const nextBestMove = document.getElementById('next-best-move');
-const revisitQueue = document.getElementById('revisit-queue');
-const retrievalHabits = document.getElementById('retrieval-habits');
-const branchFriction = document.getElementById('branch-friction');
-const conversionHistory = document.getElementById('conversion-history');
-const cadencePanel = document.getElementById('cadence-panel');
-const sessionJournal = document.getElementById('session-journal');
-const analyticsHelpTooltip = document.getElementById('analytics-help-tooltip');
+let metricGrid = null;
+let truthOverview = null;
+let nextBestMove = null;
+let revisitQueue = null;
+let retrievalHabits = null;
+let branchFriction = null;
+let conversionHistory = null;
+let cadencePanel = null;
+let sessionJournal = null;
+let analyticsHelpTooltip = null;
+
+let analyticsCallbacks = {
+  onConceptChange: null,
+};
+
+let dashboardMounted = false;
+
+function cacheDomRefs(root = document) {
+  const lookup = (id) => root.getElementById ? root.getElementById(id) : root.querySelector(`#${id}`);
+  conceptSelect = lookup('concept-select');
+  statusChip = lookup('status-chip');
+  statusMeta = lookup('status-meta');
+  refreshButton = lookup('refresh-button');
+  metricGrid = lookup('metric-grid');
+  truthOverview = lookup('truth-overview');
+  nextBestMove = lookup('next-best-move');
+  revisitQueue = lookup('revisit-queue');
+  retrievalHabits = lookup('retrieval-habits');
+  branchFriction = lookup('branch-friction');
+  conversionHistory = lookup('conversion-history');
+  cadencePanel = lookup('cadence-panel');
+  sessionJournal = lookup('session-journal');
+  analyticsHelpTooltip = lookup('analytics-help-tooltip');
+}
 
 function fmtNumber(value, digits = 1) {
   const numeric = Number(value || 0);
@@ -151,9 +175,13 @@ function getNodeTypeLabel(type) {
 function getStateCounts(nodes) {
   return nodes.reduce((acc, node) => {
     const state = node.state || 'locked';
+    if (state === 'primed') {
+      acc.primed = (acc.primed || 0) + 1;
+      return acc;
+    }
     acc[state] = (acc[state] || 0) + 1;
     return acc;
-  }, { locked: 0, drilled: 0, solidified: 0 });
+  }, { locked: 0, primed: 0, drilled: 0, solidified: 0 });
 }
 
 function getRevisitReason(node, history, dueDays) {
@@ -209,30 +237,21 @@ function buildConceptPayload(concept, remoteData) {
   const stateCounts = getStateCounts(drillableNodes);
   const availableLockedNodes = drillableNodes.filter((node) => node.available && node.state === 'locked');
   const unresolvedNodes = drillableNodes
-    .filter((node) => node.state === 'drilled')
+    .filter((node) => node.state === 'primed' || node.state === 'drilled')
     .map((node) => {
       const history = nodeHistoryMap.get(`${concept.id}::${node.id}`) || {};
       return {
         ...node,
         history,
         score: getNodeRank(node, history, dueDays),
-        reason: getRevisitReason(node, history, dueDays),
+        reason: node.state === 'primed'
+          ? 'Study is complete, but this node is still in progress until you return after enough spacing and interleaving.'
+          : getRevisitReason(node, history, dueDays),
       };
     })
     .sort((a, b) => b.score - a.score || a.fullLabel.localeCompare(b.fullLabel));
 
   const nextMove = (() => {
-    const dueRevisit = unresolvedNodes.find((node) => (node.history?.days_since_attempt || 0) >= dueDays)
-      || unresolvedNodes.find((node) => (node.history?.misconception_count || 0) > 0)
-      || unresolvedNodes[0];
-    if (dueRevisit) {
-      return {
-        label: dueRevisit.fullLabel,
-        route: 'Revisit weak point',
-        reason: dueRevisit.reason,
-        nodeType: getNodeTypeLabel(dueRevisit.type),
-      };
-    }
     const nextAvailable = availableLockedNodes[0];
     if (nextAvailable) {
       return {
@@ -242,6 +261,20 @@ function buildConceptPayload(concept, remoteData) {
         nodeType: getNodeTypeLabel(nextAvailable.type),
       };
     }
+
+    const returnCandidate = unresolvedNodes.find((node) => node.state === 'drilled' && (node.history?.days_since_attempt || 0) >= dueDays)
+      || unresolvedNodes.find((node) => node.state === 'drilled' && (node.history?.misconception_count || 0) > 0)
+      || unresolvedNodes.find((node) => node.state === 'drilled')
+      || unresolvedNodes.find((node) => node.state === 'primed');
+    if (returnCandidate) {
+      return {
+        label: returnCandidate.fullLabel,
+        route: returnCandidate.state === 'primed' ? 'Let it incubate, then return' : 'Revisit weak point',
+        reason: returnCandidate.reason,
+        nodeType: getNodeTypeLabel(returnCandidate.type),
+      };
+    }
+
     return null;
   })();
 
@@ -257,15 +290,17 @@ function buildConceptPayload(concept, remoteData) {
   const branchRows = (graphData.clusters || []).map((cluster) => {
     const subnodes = cluster.subnodes || [];
     const counts = subnodes.reduce((acc, subnode) => {
-      if (subnode.drill_status === 'solid') {
+      if (subnode.drill_status === 'solid' || subnode.drill_status === 'solidified') {
         acc.solidified += 1;
+      } else if (subnode.drill_status === 'primed') {
+        acc.primed += 1;
       } else if (subnode.drill_status || subnode.gap_type) {
         acc.drilled += 1;
       } else {
         acc.locked += 1;
       }
       return acc;
-    }, { solidified: 0, drilled: 0, locked: 0 });
+    }, { solidified: 0, primed: 0, drilled: 0, locked: 0 });
 
     const history = subnodes.reduce((acc, subnode) => {
       const row = nodeHistoryMap.get(`${concept.id}::${subnode.id}`) || {};
@@ -340,6 +375,7 @@ function renderConceptOptions(concepts, activeConcept) {
 }
 
 function renderMetricGrid(payload) {
+  const inProgressCount = (payload.truth_overview.state_counts.primed || 0) + (payload.truth_overview.state_counts.drilled || 0);
   metricGrid.innerHTML = createMetricCards([
     {
       label: 'Verified Understanding',
@@ -348,8 +384,8 @@ function renderMetricGrid(payload) {
     },
     {
       label: 'In Progress',
-      value: String(payload.truth_overview.state_counts.drilled || 0),
-      note: 'Nodes that still need a clean return',
+      value: String(inProgressCount),
+      note: 'Primed or unresolved nodes that still need a return',
     },
     {
       label: 'Worth Revisiting',
@@ -367,6 +403,7 @@ function renderMetricGrid(payload) {
 function renderTruthOverview(payload) {
   const counts = payload.truth_overview.state_counts;
   const totalNodes = Math.max(payload.truth_overview.total_nodes, 1);
+  const inProgressCount = (counts.primed || 0) + (counts.drilled || 0);
   truthOverview.innerHTML = `
     ${createStatGrid([
       {
@@ -376,8 +413,8 @@ function renderTruthOverview(payload) {
       },
       {
         label: 'In Progress',
-        value: String(counts.drilled || 0),
-        note: 'Attempted but not yet solid',
+        value: String(inProgressCount),
+        note: `${counts.primed || 0} primed, ${counts.drilled || 0} unresolved`,
       },
       {
         label: 'Locked',
@@ -392,6 +429,7 @@ function renderTruthOverview(payload) {
     ])}
     ${createBarGroup('Current Truth', [
       { label: 'Solidified', value: counts.solidified || 0, note: `${counts.solidified || 0} nodes` },
+      { label: 'Primed', value: counts.primed || 0, note: `${counts.primed || 0} nodes` },
       { label: 'Drilled', value: counts.drilled || 0, note: `${counts.drilled || 0} nodes` },
       { label: 'Locked', value: counts.locked || 0, note: `${counts.locked || 0} nodes` },
     ])}
@@ -430,6 +468,7 @@ function renderRevisitQueue(payload) {
         </div>
         <div class="list-card-meta">${escHtml(item.reason)}</div>
         <div class="list-card-metrics">
+          <span class="metric-pill">${escHtml(item.state === 'primed' ? 'Primed' : 'Needs revisit')}</span>
           <span class="metric-pill">Attempts ${item.history?.attempt_count || 0}</span>
           <span class="metric-pill">Help ${item.history?.help_count || 0}</span>
           <span class="metric-pill">Last attempt ${escHtml(fmtDayDistance(item.history?.days_since_attempt))}</span>
@@ -486,6 +525,7 @@ function renderBranchFriction(payload) {
         </div>
         <div class="list-card-metrics">
           <span class="metric-pill">Solid ${item.counts.solidified}</span>
+          <span class="metric-pill">Primed ${item.counts.primed}</span>
           <span class="metric-pill">In progress ${item.counts.drilled}</span>
           <span class="metric-pill">Misconceptions ${item.history.misconception_count}</span>
         </div>
@@ -696,6 +736,7 @@ function initInlineHelp() {
 }
 
 async function loadDashboard() {
+  if (!statusChip || !statusMeta || !metricGrid) return;
   statusChip.textContent = 'Loading…';
   statusChip.dataset.tone = '';
   statusMeta.textContent = 'Reading your saved concept maps and recent drill history.';
@@ -747,21 +788,54 @@ async function loadDashboard() {
   }
 }
 
-conceptSelect?.addEventListener('change', () => {
-  const nextId = conceptSelect.value || null;
-  setActiveId(nextId);
-  loadDashboard();
-});
+export function mountLearnerAnalyticsDashboard({ root = document, autoLoad = true, onConceptChange = null } = {}) {
+  cacheDomRefs(root);
+  if (!conceptSelect || !statusChip || !statusMeta || !metricGrid) {
+    return null;
+  }
 
-refreshButton?.addEventListener('click', () => {
-  loadDashboard();
-});
+  analyticsCallbacks.onConceptChange = onConceptChange;
 
-window.addEventListener('resize', hideHelpTooltip);
-window.addEventListener('scroll', hideHelpTooltip, { passive: true });
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') hideHelpTooltip();
-});
+  if (!dashboardMounted) {
+    conceptSelect.addEventListener('change', () => {
+      const nextId = conceptSelect.value || null;
+      if (analyticsCallbacks.onConceptChange) {
+        analyticsCallbacks.onConceptChange(nextId);
+      } else {
+        setActiveId(nextId);
+      }
+      loadDashboard();
+    });
 
-initInlineHelp();
-loadDashboard();
+    refreshButton?.addEventListener('click', () => {
+      loadDashboard();
+    });
+
+    window.addEventListener('resize', hideHelpTooltip);
+    window.addEventListener('scroll', hideHelpTooltip, { passive: true });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') hideHelpTooltip();
+    });
+
+    initInlineHelp();
+    dashboardMounted = true;
+  }
+
+  const api = {
+    loadDashboard,
+  };
+
+  if (typeof window !== 'undefined') {
+    window.LearnerAnalytics = api;
+  }
+
+  if (autoLoad) {
+    loadDashboard();
+  }
+
+  return api;
+}
+
+if (document.querySelector('[data-learner-analytics-autoload="true"]')) {
+  mountLearnerAnalyticsDashboard();
+}

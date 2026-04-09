@@ -8,12 +8,14 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
-from .service import AuthConfigurationError
+from .service import AuthConfigurationError, AuthSessionState
 
 auth_router = APIRouter()
 _login_css = Path(__file__).resolve().parent.parent / "public" / "css" / "login.css"
 _login_js = Path(__file__).resolve().parent.parent / "public" / "js" / "login.js"
 logger = logging.getLogger(__name__)
+GUEST_COOKIE_NAME = "socratink_guest"
+GUEST_COOKIE_VALUE = "guest"
 
 
 _EMBEDDED_LOGIN_CSS = """
@@ -159,8 +161,7 @@ a { color: inherit; text-decoration: none; }
   box-shadow: var(--shadow-card);
 }
 .login-card-inner { padding: 32px 30px 28px; }
-.auth-status-banner,
-.google-only-panel {
+.auth-status-banner {
   border-radius: 14px;
   font-size: 0.9rem;
   line-height: 1.45;
@@ -177,7 +178,11 @@ a { color: inherit; text-decoration: none; }
   background: rgba(99, 70, 157, 0.1);
   color: var(--primary);
 }
-.social-stack { margin-bottom: 28px; }
+.social-stack {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 28px;
+}
 .google-button {
   appearance: none;
   border: 0;
@@ -209,38 +214,40 @@ a { color: inherit; text-decoration: none; }
   height: 20px;
   flex: 0 0 20px;
 }
-.google-only-panel { padding: 16px 18px; }
-.google-only-title {
-  margin: 0;
-  color: var(--text);
-  font-family: Manrope, sans-serif;
-  font-size: 1rem;
-  font-weight: 800;
-}
-.google-only-copy {
-  margin: 8px 0 0;
+.guest-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 22px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.36);
+  box-shadow: inset 0 0 0 1px rgba(123, 117, 130, 0.22);
   color: var(--text-soft);
-  font-size: 0.88rem;
+  font-weight: 600;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+}
+.guest-button:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(123, 117, 130, 0.3), 0 10px 24px rgba(28, 28, 25, 0.04);
+  color: var(--text);
 }
 .mode-copy {
   margin-top: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  width: 100%;
   color: var(--text-soft);
   font-size: 0.92rem;
+  text-align: center;
 }
-.mode-copy p { margin: 0; }
-.login-footer {
-  margin-top: 24px;
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  color: rgba(123, 117, 130, 0.82);
-  font-size: 0.76rem;
+.mode-copy p {
+  margin: 0;
+  max-width: 18ch;
 }
-.login-footer a:hover { color: var(--primary); }
 .shimmer-btn {
   position: relative;
   overflow: hidden;
@@ -264,7 +271,6 @@ a { color: inherit; text-decoration: none; }
   .login-shell { padding: 24px 18px; }
   .login-card-inner { padding: 28px 22px 24px; }
   .brand-title { font-size: 1.8rem; }
-  .login-footer { gap: 18px; flex-wrap: wrap; }
 }
 """
 
@@ -296,8 +302,8 @@ function setMode(mode) {
   const resolved = mode === "signup" ? "signup" : "signin";
   body.dataset.mode = resolved;
   modeCopy.textContent = resolved === "signup"
-    ? "Use your Google account to create an account."
-    : "Use your Google account to sign in or create an account.";
+    ? "Choose Google sign-up or continue as guest to enter Socratink."
+    : "Choose Google sign-in or continue as guest to enter Socratink.";
 }
 function applyAuthErrorFromQuery() {
   const authError = qs("auth_error");
@@ -306,6 +312,7 @@ function applyAuthErrorFromQuery() {
     access_denied: "Google sign-in was cancelled. You can try again.",
     user_cancelled: "Google sign-in was cancelled. You can try again.",
     authentication_failed: "We couldn't complete sign-in. Please try again.",
+    authentication_unavailable: "Google sign-in is not configured correctly right now. Continue as guest or try again later.",
     missing_code: "Sign-in did not complete. Please try again.",
     invalid_state: "Sign-in could not be verified safely. Please try again.",
   };
@@ -355,6 +362,7 @@ async function bootstrap() {
   applyAuthErrorFromQuery();
   const googleLink = document.getElementById("google-login-link");
   const googleLabel = document.getElementById("google-label");
+  const guestLink = document.getElementById("guest-continue-link");
   if (googleLink && googleLabel) {
     googleLink.href = `/auth/google?return_to=${encodeURIComponent(safeReturnTo())}`;
     googleLink.addEventListener("click", () => {
@@ -362,16 +370,34 @@ async function bootstrap() {
       googleLabel.textContent = "Connecting to Google...";
     });
   }
+  if (guestLink) {
+    guestLink.href = `/auth/guest?return_to=${encodeURIComponent(safeReturnTo())}`;
+  }
   try {
     const session = await fetchSession();
+    if (session.authenticated) {
+      setBanner("You are already signed in. Redirecting...", "success");
+      window.location.assign(safeReturnTo());
+      return;
+    }
+    if (session.guest_mode) {
+      setBanner("Guest mode is already active in this browser. Redirecting...", "success");
+      window.location.assign(safeReturnTo());
+      return;
+    }
     if (session.auth_enabled === false) {
-      setBanner("Authentication is not enabled in this environment yet.", "error");
+      if (googleLink) {
+        googleLink.setAttribute("aria-disabled", "true");
+        googleLink.classList.add("is-disabled");
+        googleLink.removeAttribute("href");
+      }
+      setBanner("Google sign-in is not configured here yet. Continue as guest to enter.", "default");
     } else if (session.authenticated) {
       setBanner("You are already signed in. Redirecting...", "success");
       window.location.assign(safeReturnTo());
     }
   } catch (err) {
-    setBanner("Authentication is temporarily unavailable.", "error");
+    setBanner("Authentication is temporarily unavailable. Continue as guest or try Google sign-in again.", "error");
   }
 }
 void bootstrap();
@@ -395,12 +421,18 @@ def _render_login_html() -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7ece1">
+  <meta name="application-name" content="Socratink">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Socratink">
   <title>Socratink - The Socratic Canvas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=5">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=5">
+  <link rel="manifest" href="/manifest.webmanifest?v=1">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=6">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=6">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=6">
   <style>{css}</style>
 </head>
 <body data-mode="signin">
@@ -412,9 +444,9 @@ def _render_login_html() -> str:
   <main class="login-shell">
     <div class="login-stage">
       <div class="brand-lockup">
-        <img src="/apple-touch-icon.png?v=5" alt="Socratink brand mark" class="brand-mark">
-        <h1 class="brand-title">Socratink</h1>
-        <p class="brand-kicker">The Socratic Canvas</p>
+        <img src="/brand/socratink-mark-square.png?v=1" alt="Socratink brand mark" class="brand-mark">
+        <h1 class="brand-title">socratink</h1>
+        <p class="brand-kicker">the intelligence app for learners</p>
       </div>
 
       <section class="login-card" aria-labelledby="login-heading">
@@ -431,25 +463,15 @@ def _render_login_html() -> str:
               </svg>
               <span id="google-label">Continue with Google</span>
             </a>
-          </div>
-          <div class="google-only-panel" aria-live="polite">
-            <p class="google-only-title">Google sign-in only for tonight&apos;s deploy.</p>
-            <p class="google-only-copy">
-              Use your Google account to sign in or create an account. Passwordless email sign-in is deferred until
-              session persistence is production-safe.
-            </p>
+            <a id="guest-continue-link" class="guest-button" href="/">
+              Continue as Guest
+            </a>
           </div>
           <div class="mode-copy">
-            <p id="mode-copy-text">Use your Google account to sign in or create an account.</p>
+            <p id="mode-copy-text">Choose Google sign-in or continue as guest to enter Socratink.</p>
           </div>
         </div>
       </section>
-
-      <footer class="login-footer">
-        <a href="/">Privacy</a>
-        <a href="/">Terms</a>
-        <a href="/">Support</a>
-      </footer>
     </div>
   </main>
   <script type="module">{js}</script>
@@ -548,10 +570,57 @@ def _clear_oauth_state_cookie(response: Response, request: Request) -> None:
     response.delete_cookie(service.oauth_state_cookie_name, path="/")
 
 
+def _has_guest_session(request: Request) -> bool:
+    return request.cookies.get(GUEST_COOKIE_NAME) == GUEST_COOKIE_VALUE
+
+
+def _apply_guest_cookie(response: Response, request: Request) -> None:
+    service = _get_auth_service(request)
+    response.set_cookie(
+        GUEST_COOKIE_NAME,
+        GUEST_COOKIE_VALUE,
+        secure=service.resolve_cookie_secure(_base_url(request)),
+        httponly=True,
+        samesite=service.cookie_samesite,
+        path="/",
+    )
+
+
+def _clear_guest_cookie(response: Response) -> None:
+    response.delete_cookie(GUEST_COOKIE_NAME, path="/")
+
+
+def _load_current_session_state(request: Request) -> AuthSessionState:
+    service = _get_auth_service(request)
+    sealed_session = request.cookies.get(service.cookie_name)
+    guest_mode = _has_guest_session(request)
+    try:
+        state = service.load_session(sealed_session)
+    except AuthConfigurationError:
+        logger.warning("Auth session load failed because auth is not configured correctly.")
+        state = AuthSessionState(
+            auth_enabled=service.enabled,
+            authenticated=False,
+            guest_mode=guest_mode,
+            should_clear_cookie=bool(sealed_session),
+            error_reason="auth_unavailable",
+        )
+    except Exception:
+        logger.exception("Auth session load failed unexpectedly.")
+        state = AuthSessionState(
+            auth_enabled=service.enabled,
+            authenticated=False,
+            guest_mode=guest_mode,
+            should_clear_cookie=bool(sealed_session),
+            error_reason="auth_session_unavailable",
+        )
+    state.guest_mode = not state.authenticated and guest_mode
+    return state
+
+
 @auth_router.get("/api/me")
 def get_current_user(request: Request):
-    service = _get_auth_service(request)
-    state = service.load_session(request.cookies.get(service.cookie_name))
+    state = _load_current_session_state(request)
     response = JSONResponse(state.to_public_dict())
     if state.sealed_session:
         _apply_session_cookie(response, request, state.sealed_session)
@@ -562,12 +631,23 @@ def get_current_user(request: Request):
 
 @auth_router.get("/login")
 def login(request: Request, return_to: str | None = None):
-    service = _get_auth_service(request)
-    current = service.load_session(request.cookies.get(service.cookie_name))
+    current = _load_current_session_state(request)
     sanitized_return_to = sanitize_return_to_path(return_to)
-    if current.authenticated:
-        return RedirectResponse(url=sanitized_return_to, status_code=302)
-    return HTMLResponse(_render_login_html())
+    if current.authenticated or current.guest_mode:
+        response = RedirectResponse(url=sanitized_return_to, status_code=302)
+    else:
+        response = HTMLResponse(_render_login_html())
+    if current.should_clear_cookie:
+        _clear_session_cookie(response, request)
+    return response
+
+
+@auth_router.get("/auth/guest")
+def auth_guest(request: Request, return_to: str | None = None):
+    sanitized_return_to = sanitize_return_to_path(return_to)
+    response = RedirectResponse(url=sanitized_return_to, status_code=302)
+    _apply_guest_cookie(response, request)
+    return response
 
 
 @auth_router.get("/auth/google")
@@ -582,7 +662,14 @@ def auth_google(request: Request, return_to: str | None = None):
             provider="GoogleOAuth",
         )
     except AuthConfigurationError as err:
-        raise HTTPException(status_code=404, detail=str(err)) from err
+        logger.warning("Google auth start failed: %s", err)
+        return RedirectResponse(
+            url=_build_login_redirect(
+                return_to=sanitized_return_to,
+                auth_error="authentication_unavailable",
+            ),
+            status_code=302,
+        )
     response = RedirectResponse(url=authorization_url, status_code=302)
     _apply_oauth_state_cookie(response, request, signed_state)
     return response
@@ -632,7 +719,16 @@ def auth_callback(
             user_agent=_user_agent(request),
         )
     except AuthConfigurationError as err:
-        raise HTTPException(status_code=503, detail=str(err)) from err
+        logger.warning("Auth callback configuration failed: %s", err)
+        response = RedirectResponse(
+            url=_build_login_redirect(
+                return_to=return_to,
+                auth_error="authentication_unavailable",
+            ),
+            status_code=302,
+        )
+        _clear_oauth_state_cookie(response, request)
+        return response
     except Exception as err:
         logger.exception("Auth callback code exchange failed")
         response = RedirectResponse(
@@ -645,6 +741,7 @@ def auth_callback(
     response = RedirectResponse(url=return_to, status_code=302)
     if auth_state.sealed_session:
         _apply_session_cookie(response, request, auth_state.sealed_session)
+    _clear_guest_cookie(response)
     _clear_oauth_state_cookie(response, request)
     return response
 
@@ -655,6 +752,7 @@ def logout(request: Request):
     service.logout(request.cookies.get(service.cookie_name))
     response = JSONResponse({"ok": True, "auth_enabled": service.enabled})
     _clear_session_cookie(response, request)
+    _clear_guest_cookie(response)
     return response
 
 
