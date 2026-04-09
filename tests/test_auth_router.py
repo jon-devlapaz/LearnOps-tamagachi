@@ -1,6 +1,4 @@
 import unittest
-from pathlib import Path
-from unittest.mock import patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -113,16 +111,16 @@ class AuthRouterTests(unittest.TestCase):
         self.assertIn("Google sign-in only for tonight", response.text)
         self.assertNotIn("Email Address", response.text)
 
-    def test_login_page_falls_back_when_asset_missing(self):
+    def test_login_page_renders_without_file_assets(self):
         service = FakeAuthService(enabled=True)
         client = build_client(service)
 
-        with patch("auth.router._login_page", Path("/tmp/does-not-exist-login-page.html")):
-            response = client.get("/login?return_to=/library")
+        response = client.get("/login?return_to=/library")
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Continue with Google", response.text)
-        self.assertIn("/auth/google?return_to=/library", response.text)
+        self.assertIn("<style>", response.text)
+        self.assertIn("The Socratic Canvas", response.text)
 
     def test_callback_sets_cookie_and_redirects_to_return_to(self):
         service = FakeAuthService(enabled=True)
