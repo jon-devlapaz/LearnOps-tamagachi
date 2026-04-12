@@ -6,7 +6,7 @@ This repository supports a small multi-agent workflow for product, research, and
 
 - `.codex/config.toml`
   Shared Codex configuration for this repo.
-- `.codex/agents/*.toml`
+- `.agents/codex/*.toml`
   Per-agent definitions and default instructions.
 - `.agents/skills/*`
   Local reusable skills with references and templates.
@@ -14,7 +14,7 @@ This repository supports a small multi-agent workflow for product, research, and
   Current product and execution state for the whole project.
 - `docs/theta/state.md`
   Current state for the Theta research track.
-- `docs/codex/session-bootstrap.md`
+- `docs/codex/onboarding.md`
   Bootstrap context for new Codex sessions.
 
 ## Current Agent Roles
@@ -40,7 +40,7 @@ This repository supports a small multi-agent workflow for product, research, and
 - Put longform evidence and paper notes under `.agents/skills/theta-research/references/`.
 - Put reusable agent review workflow guidance under `.agents/skills/glenna-review/`.
 - Keep project state documents short and current rather than exhaustive.
-- Treat `docs/codex/session-bootstrap.md` as the minimum context a fresh coding session should read first.
+- Treat `docs/codex/onboarding.md` as the minimum context a fresh coding session should read first.
 - In mixed-agent workflows, `orchestrator` owns final consolidation of `docs/project/state.md`.
   Specialists may propose or draft state updates, but the final merged project-state update should be written once by the workflow owner unless a different editor is explicitly assigned.
 - Resolve specialist disagreement with an explicit decision record.
@@ -49,7 +49,7 @@ This repository supports a small multi-agent workflow for product, research, and
 ## Assumptions To Avoid
 
 - Role files alone are not enough.
-  Agent files under `.codex/agents/` must also be registered in `.codex/config.toml` via `[agents.<name>]` and `config_file`.
+  Agent files under `.agents/codex/` must also be registered in `.codex/config.toml` via `[agents.<name>]` and `config_file`.
 - Project trust matters.
   If the repo is not trusted by the runtime, project-scoped Codex config may not load.
 - Do not put the research corpus in `AGENTS.md`.

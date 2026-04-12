@@ -15,7 +15,7 @@ Rules:
 - keep reviews recommendation-only
 - name the owner agent for each recommended improvement
 - tag findings with `high`, `medium`, or `low` severity
-- use the strict markdown schema defined in `.codex/agents/glenna.toml` and the template asset
+- use the strict markdown schema defined in `.agents/codex/glenna.toml` and the template asset
 - keep section headings in the same order for every entry so reviews remain comparable
 
 Template reference:
@@ -161,3 +161,10 @@ Template reference:
 ## Follow-Up Prompts
 
 - `Ask the orchestrator to perform comprehensive static-token audits inside attached global stylesheets before modifying JS framework files in future aesthetic adjustments.`
+
+---
+
+> **Path correction note — 2026-04-11:**
+> Historical entries in this log reference `docs/codex/session-bootstrap.md` (deleted) and `.codex/agents/glenna.toml` (moved).
+> Canonical paths after refactor: `docs/codex/onboarding.md` and `.agents/codex/glenna.toml`.
+> Prior entries are preserved as-is per append-only policy.

@@ -1,1 +1,1 @@
-../../../docs/codex/session-bootstrap.md
+../../../docs/codex/onboarding.md
