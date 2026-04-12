@@ -11,10 +11,10 @@ Workflow:
 3. Start with:
    - `AGENTS.md`
    - `docs/project/state.md`
-   - `docs/codex/session-bootstrap.md`
+   - `docs/codex/onboarding.md`
 4. Read domain-specific docs only when relevant:
    - `docs/theta/state.md` for research and evidence claims
-   - `docs/codex/agent-onboarding.md` for expected agent usage
+   - `docs/codex/onboarding.md` for expected agent usage
    - `docs/product/*` and `docs/drill/*` for UX or graph-truth questions
 5. Evaluate the interaction against this rubric:
    - role adherence
