@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# BML: Build — runs extract + drill against a fixture in the terminal.
+# Use for local validation of AI pipeline behavior before merge.
+# Telemetry tagged run_mode=fixture to distinguish from real sessions.
 
 from __future__ import annotations
 
