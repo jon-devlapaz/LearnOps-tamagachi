@@ -1767,6 +1767,10 @@ const App = (() => {
     ['nav-dashboard', 'nav-library', 'nav-analytics', 'nav-settings'].forEach((navId) => {
       const el = document.getElementById(navId);
       if (el) el.classList.toggle('active', navId === currentPrimaryNav);
+      
+      const bnId = navId.replace('nav-', 'bn-');
+      const bnEl = document.getElementById(bnId);
+      if (bnEl) bnEl.classList.toggle('active', navId === currentPrimaryNav);
     });
   }
 
