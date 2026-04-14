@@ -191,14 +191,27 @@ body[data-theme="dark"] #card { background-color: var(--bg); }
     min-width: 64px;
     min-height: 48px; /* Touch target size */
     transition: color 0.15s ease, transform 0.15s ease;
+    position: relative;
   }
 
   .bottom-nav-item:active {
     transform: scale(0.92);
   }
 
+  /* #4 — Active indicator dot for bottom nav */
   .bottom-nav-item.active {
     color: var(--primary);
+  }
+  .bottom-nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--primary);
   }
 
   .bottom-nav-item .material-symbols-outlined {
@@ -226,7 +239,7 @@ body[data-theme="dark"] #card { background-color: var(--bg); }
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 86px 20px 80px; /* safe padding for mobile, increased top padding for wrapping auth buttons */
+    padding: 56px 20px 80px; /* auth controls hidden on mobile so less top padding needed */
     margin: 0;
     border-radius: 24px;
     box-shadow: var(--shadow-card);
@@ -247,6 +260,13 @@ body[data-theme="dark"] #card { background-color: var(--bg); }
   /* Add padding to views so content is not obscured by bottom nav */
   .library-view, .analytics-view, .settings-view {
     padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+
+  /* #5 — View entrance transitions */
+  .library-view.visible,
+  .analytics-view.visible,
+  .settings-view.visible {
+    animation: viewSlideIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   }
 }
 
@@ -1270,9 +1290,43 @@ body[data-map-open="true"] .drawer-toggle {
     grid-template-columns: 1fr;
   }
   .map-core-thesis { font-size: 17px; }
-  .map-view-shell { gap: 18px; padding-top: 4px; }
+  .map-view-shell { gap: 12px; padding-top: 0; }
   .map-mode-switch { width: 100%; }
   .map-mode-btn { flex: 1; }
+  
+  /* Enlarge close button for touch */
+  .map-close-btn {
+    top: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+
+  /* Stack title + drill button vertically on mobile */
+  .map-zone.zone-1 > div:first-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    margin-right: 0 !important;
+    gap: 12px;
+  }
+
+  /* Make Start Drill a prominent full-width CTA on mobile */
+  .btn-start-drill {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+    font-size: 13px;
+    border-radius: 14px;
+    background: var(--primary-fill);
+    color: var(--text-on-primary);
+    border-color: var(--primary-fill);
+    box-shadow: var(--accent-shadow-sm);
+  }
+  .btn-start-drill:active {
+    transform: scale(0.97);
+    box-shadow: none;
+  }
   .graph-layout {
     grid-template-columns: 1fr;
     height: auto;
@@ -1311,6 +1365,55 @@ body[data-map-open="true"] .drawer-toggle {
     font-size: 15px;
     line-height: 1.64;
   }
+
+  /* #6 — Drill back button needs a proper touch target */
+  .drill-back {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 14px;
+    font-size: 15px;
+    border-radius: 12px;
+    background: var(--surface-nested);
+  }
+  .drill-back:active {
+    transform: scale(0.95);
+    background: var(--accent-soft);
+  }
+
+  /* #7 — Chat bubbles need readable font size on mobile */
+  .chat-bubble {
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 14px 16px;
+    max-width: 90%;
+  }
+
+  /* #8 — Hide node detail panel during active drill to maximize chat space */
+  body.is-drilling .graph-node-detail {
+    display: none;
+  }
+
+  /* #3 — Keyboard-aware sticky input during drill */
+  body.is-drilling .chat-input-area {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface-card);
+    padding: 12px 0;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+  }
+
+  /* #10 — Safe area bottom padding on drill UI */
+  body.is-drilling .drill-ui-embedded {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* #5 — View slide-in animation */
+@keyframes viewSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes graphPrimedSettle {
