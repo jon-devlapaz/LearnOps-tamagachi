@@ -120,6 +120,7 @@
           <button class="auth-link auth-link-secondary" id="auth-logout-btn" type="button" hidden>Log Out</button>
         </div>
         <button class="dev-skip" id="dev-btn" style="display:none;" onclick="App.fastForward()">[skip 24h]</button>
+        <button class="map-close-btn" id="map-close-btn" type="button" onclick="App.hideMapView()" aria-label="Close concept map">×</button>
       </div>
     </header>
 
@@ -390,13 +391,22 @@
 
     <!-- Map View Panel -->
     <section id="map-view" class="map-view">
-      <button class="map-close-btn" onclick="App.hideMapView()" aria-label="Close map">×</button>
       <div class="map-view-shell">
-        <div class="map-mode-switch" role="tablist" aria-label="Map display mode">
-          <button id="map-mode-study" class="map-mode-btn active" data-map-mode="study" type="button">Study
-            View</button>
-          <button id="map-mode-graph" class="map-mode-btn" data-map-mode="graph" type="button">Graph View</button>
-        </div>
+        <header class="concept-header" id="concept-header">
+          <div class="concept-header-main">
+            <div class="concept-header-kicker" id="concept-header-kicker"></div>
+            <h2 class="concept-header-title" id="concept-header-title"></h2>
+            <p class="concept-header-summary" id="concept-header-summary"></p>
+            <div class="concept-header-tags" id="concept-header-tags"></div>
+          </div>
+          <div class="concept-header-actions">
+            <div class="map-mode-switch" role="tablist" aria-label="Map display mode">
+              <button id="map-mode-study" class="map-mode-btn active" data-map-mode="study" type="button" aria-pressed="true">Study</button>
+              <button id="map-mode-graph" class="map-mode-btn" data-map-mode="graph" type="button" aria-pressed="false">Graph</button>
+            </div>
+            <button class="btn-start-drill" id="concept-start-drill" type="button" onclick="App.startDrillFromMap()" hidden>Start Drill</button>
+          </div>
+        </header>
         <div id="map-content"></div>
         <div id="graph-content" class="graph-content" hidden>
           <div class="graph-layout">

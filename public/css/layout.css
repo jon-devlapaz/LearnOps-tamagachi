@@ -70,9 +70,12 @@
   padding: 28px 40px 0;
   flex-shrink: 0;
 }
-body[data-map-open="true"] .main-header-right {
-  opacity: 0;
-  pointer-events: none;
+body[data-map-open="true"] .auth-controls,
+body[data-map-open="true"] .dev-skip {
+  display: none !important;
+}
+body:not([data-map-open="true"]) #map-close-btn {
+  display: none !important;
 }
 .main-header-left {
   display: flex;
@@ -669,14 +672,13 @@ body[data-theme="dark"] #card { background-color: var(--bg); }
 .map-view {
   display: none;
   flex-direction: column;
-  position: absolute;
-  inset: 0;
   background: var(--surface);
-  z-index: 40;
   overflow-y: auto;
-  padding: 40px 56px;
+  padding: 16px 40px 40px;
   text-align: left;
   border-radius: var(--radius-card);
+  flex: 1;
+  min-height: 0;
 }
 .map-view.visible {
   display: flex;
@@ -688,36 +690,28 @@ body[data-theme="dark"] #card { background-color: var(--bg); }
 }
 
 .map-close-btn {
-  position: absolute;
-  top: 24px;
-  right: 32px;
-  z-index: 3;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   background: var(--accent-soft);
   border: none;
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
   font-size: 20px;
   line-height: 1;
   color: var(--primary);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, color 0.2s;
+  box-shadow: none;
+  transition: background 0.2s ease, color 0.2s ease;
 }
-.map-close-btn:hover {
+.map-close-btn:hover:not(:disabled) {
   background: var(--primary-fill);
   color: var(--text-on-primary);
-}
-
-body[data-map-open="true"] .main-header-left {
-  position: relative;
-  z-index: 50;
-}
-body[data-map-open="true"] .drawer-toggle {
-  opacity: 1;
-  pointer-events: auto;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Map Zones */
@@ -763,6 +757,63 @@ body[data-map-open="true"] .drawer-toggle {
 .map-fw-state { font-size: 13px; color: var(--text-sub); line-height: 1.4; }
 
 .map-view-shell { display: flex; flex-direction: column; gap: 24px; min-height: 100%; }
+
+.concept-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 8px 0 28px;
+  border-bottom: 1px solid var(--border);
+}
+.concept-header-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+}
+.concept-header-kicker {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.concept-header-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-weight: 700;
+}
+.concept-header-summary {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-sub);
+  max-width: 62ch;
+}
+.concept-header-summary:empty { display: none; }
+.concept-header-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+.concept-header-tags:empty { display: none; }
+.concept-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .map-mode-switch {
   display: inline-flex;
   align-items: center;
@@ -1262,21 +1313,13 @@ body[data-map-open="true"] .drawer-toggle {
 
 /* Mobile adjustments for map and library views */
 @media (max-width: 899px) {
-  .map-view { 
-    padding: 96px 24px 24px; 
-    border-radius: 0; 
-    position: fixed; 
-    top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 2000;
-    height: 100dvh;
+  .map-view {
+    padding: 16px 20px 24px;
+    border-radius: 0;
     box-sizing: border-box;
   }
-  .map-close-btn {
-    top: 66px;
-    right: 20px;
-  }
   .library-view {
-    padding: 24px 16px; 
+    padding: 24px 16px;
     border-radius: 0;
   }
   .settings-page-grid {
@@ -1297,30 +1340,40 @@ body[data-map-open="true"] .drawer-toggle {
     grid-template-columns: 1fr;
   }
   .map-core-thesis { font-size: 17px; }
-  .map-view-shell { gap: 12px; padding-top: 0; }
+  .map-view-shell { gap: 16px; padding-top: 0; }
   .map-mode-switch { width: 100%; }
   .map-mode-btn { flex: 1; }
-  
+
   /* Enlarge close button for touch */
   .map-close-btn {
-    top: 12px;
-    right: 12px;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     font-size: 22px;
   }
 
-  /* Stack title + drill button vertically on mobile */
-  .map-zone.zone-1 > div:first-child {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    margin-right: 0 !important;
-    gap: 12px;
+  /* Concept header stacks vertically on mobile */
+  .concept-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 4px 0 20px;
+  }
+  .concept-header-title { font-size: 24px; }
+  .concept-header-summary { font-size: 14px; }
+  .concept-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 10px;
+  }
+  .concept-header-actions .map-mode-switch {
+    width: 100%;
   }
 
   /* Make Start Drill a prominent full-width CTA on mobile */
   .btn-start-drill {
     width: 100%;
+    max-width: none;
     justify-content: center;
     padding: 14px 20px;
     font-size: 13px;
