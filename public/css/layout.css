@@ -70,7 +70,7 @@
   padding: 28px 40px 0;
   flex-shrink: 0;
 }
-body[data-map-open="true"] .main-header {
+body[data-map-open="true"] .main-header-right {
   opacity: 0;
   pointer-events: none;
 }
@@ -712,8 +712,8 @@ body[data-theme="dark"] #card { background-color: var(--bg); }
 }
 
 body[data-map-open="true"] .drawer-toggle {
-  opacity: 0;
-  pointer-events: none;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* Map Zones */
