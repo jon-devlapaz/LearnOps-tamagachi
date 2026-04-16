@@ -1726,12 +1726,10 @@ const App = (() => {
     const libraryView = document.getElementById('library-view');
     const analyticsView = document.getElementById('analytics-view');
     const settingsView = document.getElementById('settings-view');
-    const card = document.getElementById('card');
     if (heroCard) heroCard.style.display = 'none';
     if (libraryView) libraryView.classList.remove('visible');
     if (analyticsView) analyticsView.classList.remove('visible');
     if (settingsView) settingsView.classList.remove('visible');
-    if (card) card.classList.remove('dashboard-only');
   }
 
   function setMapMode(mode = 'study') {
@@ -1780,13 +1778,11 @@ const App = (() => {
   function showDashboard() {
     setNavActive('nav-dashboard');
     const heroCard = document.querySelector('.hero-card');
-    const card = document.getElementById('card');
 
     clearSettingsPanel();
     teardownMapView();
     hidePrimaryViews();
     if (heroCard) heroCard.style.display = 'flex';
-    if (card) card.classList.add('dashboard-only');
     if (window.innerWidth < 900) closeDrawer();
     scheduleTutorialRefresh();
   }

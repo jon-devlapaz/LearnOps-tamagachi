@@ -56,13 +56,6 @@
     overflow-y: auto;
   }
 
-  /* Center hero card when dashboard is the only visible view —
-     use auto margin so the header stays pinned at top */
-  #card.dashboard-only .hero-card {
-    margin-top: auto;
-    margin-bottom: auto;
-  }
-
   /* Hide bottom nav on desktop */
   .bottom-nav {
     display: none !important;
