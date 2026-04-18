@@ -75,3 +75,6 @@ tests/test_socratink_brain_drill_telemetry.py
 # Local deployment and environment state
 .vercel
 .env*.local
+
+# MCP server config (contains local DSN with credentials)
+.mcp.json
