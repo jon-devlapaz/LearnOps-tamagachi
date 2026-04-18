@@ -1,0 +1,99 @@
+# Docs Registry
+
+Inventory of everything under `docs/`. Classification is durable; status reflects the docs pivot to the evidence-weighted map doctrine.
+
+## Legend
+
+- **canonical** — binding doctrine or contract. Update only through deliberate doc work.
+- **implementation** — binding implementation-facing spec. Derived from canonical docs.
+- **evidence** — binding release-gate or manual-validation contract (not doctrine).
+- **release-gate** — specific ship/merge gate documents.
+- **workflow** — repeatable agent or process workflow documents.
+- **artifact** — design storyboard or exploratory artifact; informs canonical docs.
+- **historical** — preserved for context; not the current source of truth on its topic.
+- **deprecated** — superseded; retained only for backward links. Do not cite.
+
+Binding docs MUST be followed. Non-binding docs inform decisions but are not contracts.
+
+## Precedence (Binding)
+
+On any claim about **graph truth, evidence, mastery, completion, diagnostic capability, or what the learner knows**, [docs/product/evidence-weighted-map.md](../product/evidence-weighted-map.md) overrides every other binding doc, including the canonical `spec.md`, `ux-framework.md`, and all implementation-tier specs.
+
+Concretely: if any binding doc below uses legacy shorthand ("verified understanding", "cleared", "mastered", "proved it", "real learning", "possess"), evidence-weighted-map.md §13 (Legacy Shorthand Replacement Table) governs interpretation. Those phrases are UI or copy shorthand — not knowledge claims. Agents must translate them at read time and reject new occurrences at write time.
+
+On all other topics (three-phase loop, four-state model implementation, routing, guardrails, reward/sensory, session caps, auth), the individual binding doc listed below is authoritative.
+
+## Canonical Doctrine
+
+| Doc | Status | Binding | Purpose | Superseded By |
+| --- | --- | --- | --- | --- |
+| [product/evidence-weighted-map.md](../product/evidence-weighted-map.md) | canonical | yes | Defines the evidence-weighted map doctrine, true game loop, starting-map-as-anchor, map-maturity language, and graph-claim rules. Overrides other docs on graph-truth claims. | — |
+| [product/spec.md](../product/spec.md) | canonical | yes | Binding product contract: three-phase loop, four-state model, panel modes, traversal, guardrails, evaluation checklist. | — |
+| [product/ux-framework.md](../product/ux-framework.md) | canonical | yes | Metacognitive UX philosophy, reward/sensory rules, attribution management, session guardrails, ethical engagement boundary. | — |
+| [theta/state.md](../theta/state.md) | canonical | yes | Evidence posture and confidence ratings for product-science claims; phase grounding; product language rules. | — |
+
+## Implementation-Facing Specs
+
+| Doc | Status | Binding | Purpose | Superseded By |
+| --- | --- | --- | --- | --- |
+| [product/progressive-disclosure.md](../product/progressive-disclosure.md) | implementation | yes | Four-state model implementation spec: state transitions, persisted fields, phase tracking, drill contract, routing, progression layers, session guardrails, target happy path. | — |
+| [product/post-drill-ux-spec.md](../product/post-drill-ux-spec.md) | implementation | yes | Post-phase panel copy, result-state visuals, sensory treatment, transcript policy, tier/band trajectory display. | — |
+| [drill/engineering.md](../drill/engineering.md) | implementation | yes | Hard engineering invariants for drill/graph state coherence; pre-change checklist. | — |
+| [drill/evaluation.md](../drill/evaluation.md) | evidence | yes | Manual eval set, answer modes, obvious-break checklist, evidence capture for the thermostat loop. | — |
+| [product/repair-reps-card-stack-spec.md](../product/repair-reps-card-stack-spec.md) | implementation | yes | Card-stack visual spec for Repair Reps. Visual only; no state/API changes. | — |
+| [product/repair-reps-focused-mode-spec.md](../product/repair-reps-focused-mode-spec.md) | implementation | yes | Focused-mode layout and copy for Repair Reps. Visual/copy only. | — |
+| [product/repair-reps-self-rating-spec.md](../product/repair-reps-self-rating-spec.md) | implementation | yes | Self-rating UI, state additions, evidence schema, completion breakdown for Repair Reps. | — |
+| [project/auth-rollout.md](auth-rollout.md) | implementation | yes | Auth rollout phases, release gates, test plan, deferred work. | — |
+
+## Artifacts (Design Storyboards)
+
+| Doc | Status | Binding | Purpose | Superseded By |
+| --- | --- | --- | --- | --- |
+| [product/starting-map-flow-artifact.md](../product/starting-map-flow-artifact.md) | artifact | no | Storyboard for the starting-map concept-entry flow. Informs `evidence-weighted-map.md` §11 and future canonical/implementation work. Not itself an implementation contract. | Operational rules live in [evidence-weighted-map.md](../product/evidence-weighted-map.md). |
+
+## Release Gates & Evidence
+
+| Doc | Status | Binding | Purpose | Superseded By |
+| --- | --- | --- | --- | --- |
+| [project/state.md](state.md) | release-gate | yes | Current release gate, stage, priorities, active risks, product constraints. `socratinker` consolidates this. | — |
+| [project/mvp-happy-path.md](mvp-happy-path.md) | release-gate | yes | Narrow manual ship gate for the thermostat loop. | — |
+| [project/operations.md](operations.md) | release-gate | yes | Merge standard, release checks, evidence policy, near-term priorities. | — |
+
+## Workflow & Agent Infra
+
+| Doc | Status | Binding | Purpose | Superseded By |
+| --- | --- | --- | --- | --- |
+| [codex/onboarding.md](../codex/onboarding.md) | workflow | yes | Canonical bootstrap for new Socratink coding sessions. | — |
+| [codex/workflows.md](../codex/workflows.md) | workflow | yes | Hot-fix, Build-Measure-Learn, decision-log, and Glenna review workflows. | — |
+| [codex/drill-build-measure-learn.md](../codex/drill-build-measure-learn.md) | workflow | yes | Drill log → Socratink Brain evaluation → fix cycle. | — |
+| [codex/socratink-brain-workflow-architecture.md](../codex/socratink-brain-workflow-architecture.md) | workflow | yes | Socratink Brain operation router, data layers, ingest/query workflow, git tracking policy. | — |
+| [codex/decision-log.md](../codex/decision-log.md) | workflow | yes | Append-only architectural/product decision log. Empty template at time of writing. | — |
+| [codex/agent-review-log.md](../codex/agent-review-log.md) | workflow | yes | Append-only Glenna review log. | — |
+| [codex/session-bootstrap.md](../codex/session-bootstrap.md) | deprecated | no | Legacy alias only; redirects to `codex/onboarding.md`. | [codex/onboarding.md](../codex/onboarding.md) |
+
+## Reference Fixtures
+
+| Path | Status | Binding | Purpose |
+| --- | --- | --- | --- |
+| `docs/reference/example-extraction-output.json` | reference | no | Sample extraction output for prompts and testing. Not a contract. |
+
+## Historical / Deprecated Notes
+
+- **`docs/codex/session-bootstrap.md`** — deprecated alias. All bootstrap reads should resolve to `docs/codex/onboarding.md`. Do not add new content here.
+- No other docs are currently deprecated. Items flagged as stale during the evidence-weighted-map pivot are updated in place (see `evidence-weighted-map.md` for the binding doctrine and surgical edits to the canonical docs in this registry).
+
+## Lean-Startup Consolidation Candidates (Post-MVP)
+
+None of these are dead. They are load-bearing for the feature they describe. They are listed here because they will create drift risk as MVP stabilization progresses and should be consolidated once current release work is stable. Do not consolidate during an active release gate.
+
+- **Three repair-reps specs** — [repair-reps-card-stack-spec.md](../product/repair-reps-card-stack-spec.md), [repair-reps-focused-mode-spec.md](../product/repair-reps-focused-mode-spec.md), [repair-reps-self-rating-spec.md](../product/repair-reps-self-rating-spec.md). Each describes a separate layer (visual, layout/copy, state/schema) of the same implemented feature. Post-MVP: fold into one `repair-reps.md` with clear subsections. Current cost: triple read path for anyone touching repair-reps behavior.
+- **`docs/codex/socratink-brain-workflow-architecture.md`** — duplicates content governed by `.socratink-brain/CLAUDE.md` and the `$socratink-brain` skill. Keep until a clean pointer replaces it. Post-MVP: collapse to a short "see skill" stub.
+- **`docs/product/starting-map-flow-artifact.md`** — design storyboard. Once the threshold flow is built, operational rules should move to a canonical `starting-map.md`; the artifact should be marked historical at that point.
+
+If a new doc is added during MVP work, register it here with `binding: yes` or `binding: no` and add it to this consolidation list if it duplicates or refines an existing binding doc.
+
+## Registry Maintenance
+
+- When a new doc is added under `docs/`, register it here with status, binding flag, and purpose.
+- When a doc becomes superseded, flip status to `historical` or `deprecated` and fill the "Superseded By" column. Do not delete.
+- When doctrine shifts, the canonical doc that now governs must be referenced from this registry so readers find the current source of truth.

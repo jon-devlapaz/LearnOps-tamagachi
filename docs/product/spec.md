@@ -2,16 +2,20 @@
 
 This document is the binding design and implementation contract for socratink. It defines the product philosophy, the cognitive architecture, the state model, and the learner-facing UX.
 
+> Read alongside [evidence-weighted-map.md](evidence-weighted-map.md). That doctrine governs what the graph may and must not claim. Where wording here could be read as "the graph shows what the learner knows," the evidence-weighted-map doctrine controls: the graph shows what Socratink has evidence for.
+
 ---
 
 ## 1. Product Thesis
 The enemy is the **illusion of competence**. Most learning tools reward exposure and recognition. socratink rewards **reconstruction**.
 
 The goal is to make a hard cognitive act feel magnetic:
-- **Enter** a room you've never seen (Cold Attempt).
-- **Discover** where your understanding breaks (Targeted Study).
-- **Prove** you actually understood it later (Spaced Re-Drill).
-- **See** the graph change truthfully based on verified understanding.
+- **Expose** current model (Cold Attempt) — first evidence event.
+- **Repair** where the attempt diverged from the mechanism (Targeted Study).
+- **Reconstruct** under spacing (Spaced Re-Drill) — the only event that records `solidified`.
+- **Accumulate** evidence on the graph; trust grows from recorded reconstruction, not from reading.
+
+The graph is an evidence-weighted map. The map starts as a hypothesis. It earns trust through learner-generated evidence. Only spaced reconstruction mutates graph truth to `solidified`.
 
 ### Unifying Principle: Metacognitive UX
 The product is designed for the learner's awareness of their own cognitive process. We don't just present content; we optimize how accurately the learner can perceive, interpret, and trust their own understanding.
@@ -22,7 +26,7 @@ The product is designed for the learner's awareness of their own cognitive proce
 | **Targeted Study** | Anchors correction to the specific prediction error just generated. |
 | **Spacing Block** | Teaches that "feeling of knowing" (fluency) is a cognitive illusion. |
 | **Trajectory Contrast** | Shows how metacognitive predictions were wrong to update beliefs about struggle. |
-| **The Graph** | Provides a spatial mirror of understanding that the learner can actually trust. |
+| **The Graph** | Shows what Socratink has evidence for — not what the learner knows. Topology is a hypothesis; node state is the accumulated evidence of actual reconstruction. |
 
 ---
 
@@ -42,21 +46,24 @@ Every drillable node on the graph must move through these three phases. No phase
 - **UX**: Highlights divergence from the learner's guess. Mechanism text is only for the attempted node.
 - **Outcome**: Node remains `primed`; `drill_phase` becomes `re_drill`.
 
-### Phase 3: Spaced Re-Drill (Mastery)
-- **Goal**: Verify long-term retrieval after the working memory buffer is cleared.
+### Phase 3: Spaced Re-Drill (Proof Event)
+- **Goal**: Record evidence of long-term retrieval after the working memory buffer is cleared.
 - **Buffer Flush**: 10-15 minutes of interleaved work on other nodes. Minimum 5 minutes.
 - **Contract**: Demands multi-step causal reconstruction. Rubric: (a) initiating condition, (b) causal transition, (c) resulting state.
-- **Outcome**: `solid` classification → `solidified`. Non-solid → `drilled`.
+- **Outcome**: `solid` classification → `solidified` recorded. Non-solid classification → `drilled` recorded.
+- **Evidence semantics**: `solidified` is the record of at least one solid spaced reconstruction. It is not a claim about the learner's mind or permanent ability.
 
 ---
 
 ## 3. State Model & Transitions
 
 ### Node States
-- `locked`: Prerequisites not yet satisfied.
-- `primed`: Cold attempt complete; study unlocked.
-- `drilled`: Re-drill attempted but not solid. return-worthy.
-- `solidified`: Verified understanding from spaced retrieval.
+Each state is a persisted record of a specific evidence event. States describe what Socratink has on record, not what the learner knows.
+
+- `locked`: No attempt recorded; prerequisites not yet satisfied.
+- `primed`: A substantive cold attempt is recorded; study is unlocked.
+- `drilled`: A non-solid spaced reconstruction is recorded; node is return-worthy.
+- `solidified`: At least one solid spaced reconstruction is recorded. Evidence, not mastery.
 
 ### Containers vs. Drill Targets
 - Core thesis, backbone rooms, and child rooms are drillable in the MVP loop.

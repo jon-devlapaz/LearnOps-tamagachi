@@ -8,9 +8,11 @@ Legacy alias: `docs/codex/session-bootstrap.md` exists only to redirect older in
 ## Read Order
 1. [AGENTS.md](../../AGENTS.md)
 2. [docs/project/state.md](../project/state.md)
-3. [docs/product/spec.md](../product/spec.md)
-4. [docs/drill/engineering.md](../drill/engineering.md) if the task touches drill, graph, routing, or persistence
-5. `logs/drill-runs.jsonl` if current loop evidence matters
+3. [docs/product/evidence-weighted-map.md](../product/evidence-weighted-map.md) — binding graph-truth doctrine
+4. [docs/product/spec.md](../product/spec.md)
+5. [docs/drill/engineering.md](../drill/engineering.md) if the task touches drill, graph, routing, or persistence
+6. [docs/project/doc-map.md](../project/doc-map.md) to locate any other binding doc
+7. `logs/drill-runs.jsonl` if current loop evidence matters
 
 ## Current Repo Reality
 - Product: socratink
@@ -23,7 +25,7 @@ Legacy alias: `docs/codex/session-bootstrap.md` exists only to redirect older in
 
 ## Working Rules
 - Local success is not hosted validation.
-- The graph must tell the truth.
+- The graph shows what Socratink has evidence for, not what the learner knows. Only spaced reconstruction may mutate graph truth to `solidified`.
 - Do not violate Generation Before Recognition.
 - Prefer a small party. Pull in `theta`, `elliot`, `sherlock`, or `thurman` only when the task actually needs them.
 - Update durable state after meaningful work. `docs/project/state.md` holds live execution truth; logs and merge notes hold current evidence on this branch.
@@ -36,11 +38,13 @@ You are the party lead for this repository.
 Before doing substantive work:
 1. Read AGENTS.md.
 2. Read docs/project/state.md.
-3. Read docs/product/spec.md.
-4. If current runtime evidence matters, inspect `logs/drill-runs.jsonl`.
-5. If the task touches drill/graph behavior, read docs/drill/engineering.md.
-6. Decide which agents are actually needed. Prefer a small party.
-7. Make a plan when the task is large, risky, or ambiguous.
+3. Read docs/product/evidence-weighted-map.md. This is the binding graph-truth doctrine; it overrides other docs on graph/evidence/mastery claims.
+4. Read docs/product/spec.md.
+5. Scan docs/project/doc-map.md to locate any other binding doc the task touches.
+6. If current runtime evidence matters, inspect `logs/drill-runs.jsonl`.
+7. If the task touches drill/graph behavior, read docs/drill/engineering.md.
+8. Decide which agents are actually needed. Prefer a small party.
+9. Make a plan when the task is large, risky, or ambiguous.
 
 Operating rules:
 - Keep read-only agents read-only unless implementation is explicitly required.
@@ -62,14 +66,16 @@ You are the party lead for this repository. Act as the orchestration layer for a
 Before doing substantive work:
 1. Read AGENTS.md
 2. Read docs/project/state.md
-3. Read docs/theta/state.md when the task touches product science or claims
-4. Read docs/product/spec.md when the task involves the cold attempt, study, or re-drill architecture
-5. Use the theta-research skill when the task touches learning science
-6. Decide which agents are actually needed
-7. Make a plan when the task is large or ambiguous
-8. Use docs/codex/workflows.md for narrow regressions
+3. Read docs/product/evidence-weighted-map.md (binding graph-truth doctrine; overrides other docs on graph/evidence/mastery claims)
+4. Scan docs/project/doc-map.md to locate other binding docs for this task
+5. Read docs/theta/state.md when the task touches product science or claims
+6. Read docs/product/spec.md when the task involves the cold attempt, study, or re-drill architecture
+7. Use the theta-research skill when the task touches learning science
+8. Decide which agents are actually needed
+9. Make a plan when the task is large or ambiguous
+10. Use docs/codex/workflows.md for narrow regressions
 
-The product implements a three-phase node loop (cold attempt → targeted study → spaced re-drill) with a four-state model (locked → primed → drilled → solidified). All changes to drill, graph, routing, or state must be evaluated against this architecture.
+The product is an evidence-weighted map: the graph records what Socratink has evidence for, not what the learner knows. It implements a three-phase node loop (cold attempt → targeted study → spaced re-drill) with a four-state model (locked → primed → drilled → solidified). Only spaced reconstruction records `solidified`. All changes to drill, graph, routing, or state must be evaluated against this architecture and against evidence-weighted-map.md.
 
 Operating rules:
 - Prefer a small party over too many agents
