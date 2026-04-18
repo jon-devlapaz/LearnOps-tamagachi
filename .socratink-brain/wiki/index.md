@@ -10,6 +10,7 @@
 - [Testing Effect](concepts/testing-effect.md) — Active retrieval beats restudy at delay (Roediger & Karpicke 2006; Rowland 2014 g≈0.50); feedback-after-failure is the load-bearing moderator
 - [Spacing Effect](concepts/spacing-effect.md) — Distributed practice beats massed (Cepeda 2006/2008 ridgeline); anchors `solidified` operational definition and `re_drill_band` policy
 - [Generation Effect](concepts/generation-effect.md) — Producing beats reading (Slamecka & Graf 1978; Bertsch 2007 d≈0.40, ≈0.64 at >1d); foundational citation for Generation Before Recognition
+- [Tetris Effect and Schema Consolidation](concepts/tetris-effect-schema-consolidation.md) — Tetris effect runs on procedural memory, not declarative; valid product metaphor, not a mechanism claim; real schema-integration substrate is spacing + GBR + interleaving
 
 ## Mechanisms
 - [External Audit Triage Loop](mechanisms/external-audit-triage-loop.md) — How external critique becomes durable memory instead of backlog sprawl
@@ -30,6 +31,7 @@
 - [Testing Effect Research Note](sources/research-note-testing-effect.md) — Primary-source coverage of testing/retrieval-practice literature including Rowland 2014 meta-analysis and Van Gog/Sweller debate
 - [Spacing Effect Research Note](sources/research-note-spacing-effect.md) — Primary-source coverage of distributed-practice literature including Cepeda meta-analyses and the expanding-vs-uniform debate
 - [Generation Effect Research Note](sources/research-note-generation-effect.md) — Primary-source coverage of generation-effect literature including Slamecka & Graf, Bertsch meta-analysis, errorful-generation, expertise reversal counterweight
+- [Theta Research: Tetris Effect and Learning Science (2026-04-17)](sources/research-note-theta-tetris-effect-2026-04-17.md) — Neurocognitive note rejecting Tetris-effect mechanism framing for declarative learning; confirms spacing + GBR + interleaving as the real substrate
 - [Product Spec (canonical)](sources/product-doc-spec.md) — Binding design and implementation contract: three-phase loop, four-state model, panel modes, traversal, guardrails, evaluation checklist
 - [UX Framework (canonical)](sources/product-doc-ux-framework.md) — Metacognitive UX philosophy, reward/sensory rules, attribution management, session guardrails, ethical engagement, evidence posture
 - [Evidence-Weighted Map Doctrine (canonical, overrides)](sources/product-doc-evidence-weighted-map.md) — Binding doctrine on graph-truth claims; overrides every other binding doc on what the graph may claim

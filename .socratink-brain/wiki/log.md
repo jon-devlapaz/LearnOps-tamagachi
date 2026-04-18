@@ -38,3 +38,6 @@ Added ZPD concept page — Vygotsky's scaffolded learning gap that maps directly
 
 ## [2026-04-14] lint | Brain validator warning cleanup
 Changed the replay coverage issue workflow status from the non-schema value `closed` to `resolved`. Added a raw provenance note for the missing 2026-04-08 ChatGPT repo-audit transcript and updated the source page to point at that note while preserving the provenance limitation.
+
+## [2026-04-17] ingest | Theta tetris-effect research note
+Registered the 2026-04-17 theta research note on the Tetris effect as an already-present raw artifact, rewrote the source page to match the contract schema (frontmatter + Summary / Raw Artifacts / Connections sections), and aligned the companion concept page `tetris-effect-schema-consolidation.md` to the existing concepts/ frontmatter convention. Derived implication: Tetris effect holds as product metaphor but is not a valid mechanism claim for declarative learning — spacing, GBR, and interleaving remain the real substrate. Does not affect ACTIVE.md (foundational learning-science context, not release-gate).
