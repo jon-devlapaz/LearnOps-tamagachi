@@ -1,5 +1,10 @@
 # socratink — Post-Drill UX Spec
 
+> Binding under [evidence-weighted-map.md](evidence-weighted-map.md). This spec uses UI shorthand ("Solidified", "Needs revisit", "cleared") for learner-facing panel copy. Those labels are display artifacts — they describe what Socratink has recorded, not claims about the learner's mind. When agent-reading this doc, translate:
+> - "Solidified" headline = Socratink recorded a solid spaced reconstruction for this node.
+> - "Needs revisit" = Socratink recorded a non-solid spaced reconstruction for this node.
+> - "Cleared" (if used in copy) = visual shorthand for `solidified` state; not a knowledge claim.
+
 ## Agent Summary
 
 > **What this document is**: The spec for what the learner sees after each phase of the three-phase node loop resolves. It governs panel copy, result-state visual treatment, sensory feedback, transcript visibility, tier/band trajectory display, and the handoff from drill mode back to graph navigation. This is the document you read before changing anything the learner sees after a cold attempt, study, re-drill, or session ending.
@@ -19,13 +24,13 @@
 
 ## Core Distinction
 
-Post-phase UX must distinguish between three resolution types:
+Post-phase UX must distinguish between three evidence events:
 
-- cold attempt resolution (Phase 1 → primed)
-- spaced re-drill with mastery (Phase 3 → solidified)
-- spaced re-drill without mastery (Phase 3 → drilled)
+- cold attempt evidence recorded (Phase 1 → `primed`)
+- solid spaced reconstruction evidence recorded (Phase 3 → `solidified`)
+- non-solid spaced reconstruction evidence recorded (Phase 3 → `drilled`)
 
-These must look and feel completely different from each other. If the UI blurs these states, the graph stops telling the truth.
+These three events produce different records and must look and feel different. If the UI blurs them, the graph stops telling the truth about what is on record.
 
 ## Canonical Result States
 
@@ -61,7 +66,7 @@ Sensory treatment:
 - subtle warm acknowledgment (brief animation on node state change)
 - no celebration — this is entering a room, not clearing it
 
-### 2. Solidified (Spaced Re-Drill Mastery)
+### 2. Solidified (Solid Spaced Reconstruction Recorded)
 
 Use when:
 
@@ -69,26 +74,26 @@ Use when:
 - `routing === "NEXT"`
 - `classification === "solid"`
 
-What it means:
+What it means (agent-readable):
 
-- the room is cleared
-- the mechanism was reconstructed from long-term memory after genuine spacing
-- downstream unlock checks may now re-evaluate
+- Socratink has recorded at least one solid spaced reconstruction for this node.
+- Downstream unlock checks may now re-evaluate.
+- It does not claim the learner has permanent understanding. It records a reconstruction event that met the solid rubric under spacing.
 
 Required visual treatment:
 
 - node appears `solidified`
-- side panel headline says the room is cleared
-- copy acknowledges genuine reconstruction — this is earned, not given
+- side panel headline marks the recorded evidence
+- copy acknowledges the reconstruction event — Socratink saw the mechanism rebuilt from long-term memory under spacing
 - result state remains visible until the learner presses `Continue`
-- trajectory contrast is shown: "Your cold attempt: [band]. Your re-drill: [band]. That gap is real learning."
+- trajectory contrast is shown as evidence delta: "Cold attempt: [band]. Re-drill: [band]. Stronger reconstruction evidence on record."
 
 Required copy:
 
 - headline: `Solidified`
-- body: short, earned, non-generic acknowledgment
-- trajectory contrast (if tier/band data available from both cold attempt and re-drill)
-- wise feedback format: high standards acknowledged, specific achievement named
+- body: short, specific acknowledgment of the reconstruction event
+- trajectory contrast (if tier/band data available from both cold attempt and re-drill) framed as evidence delta, not as a learning claim
+- wise feedback format: high standards acknowledged, specific reconstruction named
 
 Sensory treatment:
 
@@ -99,7 +104,7 @@ Sensory treatment:
 - haptic pulse timed to the moment of generation commit (if haptics enabled)
 - moderate, not excessive — the inverted-U rule applies
 
-### 3. Unresolved Exit (Spaced Re-Drill Without Mastery)
+### 3. Unresolved Exit (Non-Solid Spaced Reconstruction Recorded)
 
 Use when:
 
@@ -123,7 +128,7 @@ Required visual treatment:
 Required copy:
 
 - headline: `Needs revisit`
-- body: strategy-focused, not ability-focused. Use wise feedback: "This concept is designed to be challenging. The connection between [specific gap] needs a different angle. We know you can master it."
+- body: strategy-focused, not ability-focused. Use wise feedback without epistemic certainty about the learner's future: "This concept is designed to be challenging. The connection between [specific gap] needs a different angle next time."
 - include one specific next-step suggestion
 
 Attribution framing (binding):
@@ -177,9 +182,10 @@ Required visual treatment:
 Required copy:
 
 - headline: `Session saved`
-- body: "Progress locked in. Your brain consolidates during breaks. Spacing improves retention dramatically."
-- if ending at engagement (not exhaustion): "You're building momentum. Come back tomorrow and this will be stronger."
-- never end copy with a failure state or a diagnostic — end with forward-looking warmth
+- body: "Session saved. Spacing gives the next re-drill a cleaner signal."
+- if ending at engagement (not exhaustion): "Come back after a break. The next re-drill is where evidence accumulates."
+- never promise passive capability gains from leaving the app ("this will be stronger", "progress locked in"). The next evidence event is the next re-drill.
+- never end copy with a failure state or a diagnostic — end with forward-looking warmth grounded in the next action
 
 ## Graph-State Meaning
 
@@ -204,8 +210,8 @@ The learner-facing graph should keep these meanings stable:
 
 ### `solidified`
 
-- cleared
-- verified understanding from genuine long-term retrieval
+- at least one solid spaced reconstruction is on record for this node
+- evidence event, not a mastery claim about the learner
 
 ## Side Panel Rules
 
@@ -297,13 +303,15 @@ Prefer translated labels framed as strategy guidance:
 
 ## Tier/Band Display
 
-The tier/band system (`spark → link → chain → clear → tetris`) is surfaced as trajectory contrast, not as a live score.
+The tier/band system (`spark → link → chain → clear → tetris`) describes the transient quality of individual attempts. It is surfaced as evidence delta, not as a live score or a learning claim.
 
 Rules:
 
 - never show tier/band during an active drill attempt
-- show trajectory only after a re-drill resolves: "Your cold attempt: spark. Your re-drill: chain. That gap is real learning."
+- show trajectory only after a re-drill resolves: "Cold attempt: spark. Re-drill: chain. Stronger reconstruction evidence on record."
+- the band describes one attempt, not a mastery tier. `chain` is not `solid`; only `solid` records `solidified`.
 - always pair with interpretive framing — raw numbers without meaning frames show null or negative effects
+- never use phrasing that equates band improvement with learning achieved. Band improvement describes the attempt; only spaced reconstruction records learner-capability evidence.
 
 ## Continue Behavior
 

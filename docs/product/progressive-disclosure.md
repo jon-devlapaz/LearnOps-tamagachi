@@ -21,6 +21,10 @@
 This is the implementation-facing product spec.
 It should stay closer to current truth than to aspirational philosophy.
 
+For the binding graph-truth doctrine, read:
+
+- [evidence-weighted-map.md](evidence-weighted-map.md)
+
 For enduring UX principles, read:
 
 - [ux-framework.md](ux-framework.md)
@@ -32,38 +36,41 @@ For hard engineering rules, read:
 
 ## Product Model
 
-The graph is a progressively revealed map of verified understanding.
+The graph is a progressively revealed, evidence-weighted map. It records what Socratink has evidence for — not what the learner knows. See [evidence-weighted-map.md](evidence-weighted-map.md) for the binding doctrine.
 
-The learner should not be flooded with the full conceptual structure at once.
-They should earn clarity node by node through the three-phase loop: cold attempt, targeted study, spaced re-drill.
+The learner advances node by node through the three-phase loop: cold attempt, targeted study, spaced re-drill. Each node state is a persisted record of a specific evidence event:
+
+- `primed` is recorded on a substantive cold attempt.
+- `drilled` is recorded on a non-solid spaced reconstruction.
+- `solidified` is recorded only on a solid spaced reconstruction.
+
+No other path mutates graph truth. Study, Repair Reps, starting-map capture, and confidence ratings must not change node state.
 
 ## State Model
 
-The graph uses four learner-facing node states:
+Each state is a persisted record of a specific evidence event. States describe what Socratink has on record for this node — not what the learner knows. See [evidence-weighted-map.md](evidence-weighted-map.md) for the binding doctrine.
 
 ### `locked`
 
-- not yet reachable
+- no attempt record for this node
 - prerequisites not yet satisfied
 
 ### `primed`
 
-- cold attempt completed
-- study view unlocked for this node
-- not yet eligible for mastery verification
-- the learner has entered the room but not yet faced the boss
+- a substantive cold attempt is recorded
+- study view is unlocked
+- no mastery is implied; no spaced reconstruction is on record yet
 
 ### `drilled`
 
-- spaced re-drill attempted but not solid
-- should feel in-progress, not punitive
-- worth revisiting
+- a non-solid spaced reconstruction is recorded
+- worth revisiting; return-worthy, not punitive
 
 ### `solidified`
 
-- mechanism successfully reconstructed from long-term memory on a spaced re-drill
-- verified understanding
-- downstream unlock checks may now re-evaluate
+- at least one solid spaced reconstruction is recorded
+- downstream unlock checks may re-evaluate
+- evidence event, not a mastery claim about the learner
 
 These states are projected from persisted knowledge-map data, not invented separately by Cytoscape.
 
@@ -233,7 +240,7 @@ That means:
 - the study view must not be accessible for nodes still in `locked` state
 - scaffolds and feedback may clarify the gap after an attempt, but must not silently change the target
 - AI-generated explanation quality does not itself mutate graph state
-- only persisted drill outcomes from spaced re-drills should affect node, cluster, and unlock state
+- only persisted evidence events mutate node, cluster, and unlock state: cold attempts may record `primed`; spaced re-drills may record `drilled` or `solidified`. Study, Repair Reps, starting-map capture, confidence ratings, and AI scaffolding must not mutate graph truth.
 - the AI must remain sparse during drill — if the AI talks more than the learner, the passive trap has been triggered
 - the AI must detect zero-schema states and pivot to scaffolded generation
 

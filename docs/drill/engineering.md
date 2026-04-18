@@ -2,6 +2,8 @@
 
 This document defines the hard engineering rules for keeping drill behavior, graph state, and persisted learner state in sync.
 
+> Read alongside [../product/evidence-weighted-map.md](../product/evidence-weighted-map.md). Graph state is the persisted, machine-checkable projection of evidence Socratink has seen. Only spaced reconstruction may mutate graph truth to `solidified`.
+
 ## Core Invariants
 
 ### 1. One Active Node At A Time

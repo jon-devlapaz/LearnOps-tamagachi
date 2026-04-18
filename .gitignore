@@ -75,4 +75,5 @@ tests/test_socratink_brain_drill_telemetry.py
 # Local deployment and environment state
 .vercel
 .env*.local
+
 .mcp.json

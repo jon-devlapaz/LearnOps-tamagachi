@@ -1,5 +1,7 @@
 # socratink — Product UX Framework
 
+> Read alongside [evidence-weighted-map.md](evidence-weighted-map.md). That doctrine controls what the graph may claim. Copy here uses metaphors like "spatial mirror" and "spatial record" — treat them as shorthand for the evidence-weighted map, not as license to imply the graph directly shows what the learner knows.
+
 ## Agent Summary
 
 > **What this document is**: The binding design contract for socratink. The unifying design principle is **metacognitive UX** — every surface is designed for the learner's awareness of their own cognitive process, not just the content. The document defines the three-phase learning loop (cold attempt → targeted study → spaced re-drill), the four-state graph model (locked → primed → drilled → solidified), the reward and sensory feedback layer, attribution management, session guardrails, bottleneck recovery, and the ethical engagement boundary. Every UX, state, routing, and AI design decision must pass the 14-question evaluation checklist at the end of this document.
@@ -38,7 +40,7 @@ The product is trying to make a hard cognitive act feel magnetic:
 
 The graph is not a content browser.
 It is not a completion checklist.
-It is a spatial record of verified understanding.
+It is an evidence-weighted map. It shows what Socratink has evidence for — not what the learner knows. Topology is a hypothesis; node state accumulates through actual reconstruction. See [evidence-weighted-map.md](evidence-weighted-map.md).
 
 ## Core Experience Goal
 
@@ -74,7 +76,7 @@ This lens determines what every surface in the product is actually doing:
 | Spacing block | Enforce a wait | Teach the learner that their feeling of knowing is unreliable — post-study fluency is a cognitive illusion, not evidence of understanding |
 | Trajectory contrast | Show a progress score | Show the learner how their own metacognitive predictions were wrong — the only intervention that updates beliefs about productive struggle |
 | Normalization | Reduce anxiety | Teach the learner how to interpret difficulty — as a process feature, not an ability verdict |
-| The graph | Track completion | Give the learner a spatial mirror of their understanding that they can trust because the system never inflates it |
+| The graph | Track completion | Surface an evidence-weighted map the learner can trust because the system only mutates mastery truth on spaced reconstruction |
 | Session cap | Prevent fatigue | Teach the learner that their brain has consolidation constraints, and that respecting them is part of how mastery works |
 
 When evaluating any new feature, the metacognitive UX lens asks: **does this make the learner's own cognitive process more visible and more accurately interpretable?** If it only makes content easier to consume without improving the learner's self-awareness, it is cognitive UX, not metacognitive UX — and it belongs in a different product.
@@ -556,7 +558,7 @@ At any moment, the learner should know what they are working on, where it sits, 
 
 ### 3. The Graph Must Tell The Truth
 
-A cold attempt is not mastery. Studying is not mastery. A buffer-echo test is not mastery. Accumulated effort is not mastery. Only a solid classification on a spaced re-drill earns `solidified`. Only verified long-term retrieval opens downstream territory. Repeated non-solid results on a gating node do not auto-unlock.
+The graph does not show what the learner knows. It shows what Socratink has evidence for. A cold attempt is not mastery. Studying is not mastery. A buffer-echo test is not mastery. Accumulated effort is not mastery. Only a solid classification on a spaced re-drill earns `solidified`. Only verified long-term retrieval opens downstream territory. Repeated non-solid results on a gating node do not auto-unlock.
 
 ### 4. Reward Must Be Earned
 

@@ -4,7 +4,7 @@ Last updated: 2026-04-11
 
 ## Current Evidence Posture
 
-socratink's strongest science case is the code-verified loop of generation, correction, spacing, and retrieval. The learner first makes an unscored attempt, receives targeted corrective study, works other nodes so short-term fluency decays, then returns for effortful re-drill. The graph should only mark mastery when a spaced, self-generated reconstruction is solid.
+socratink's strongest science case is the code-verified loop of generation, correction, spacing, and retrieval. The learner first makes an unscored attempt, receives targeted corrective study, works other nodes so short-term fluency decays, then returns for effortful re-drill. The graph is an evidence-weighted map — it shows what Socratink has evidence for, not what the learner knows — and only marks mastery when a spaced, self-generated reconstruction is solid. See [../product/evidence-weighted-map.md](../product/evidence-weighted-map.md) for the binding doctrine.
 
 The live product should be described as a retrieval-centered learning loop, not as a general AI tutor or a sleep-consolidation system. AI is a support layer for ingestion, routing, feedback, and friction reduction; it is not itself evidence that learning occurred.
 
@@ -108,7 +108,9 @@ Source of truth: Sherlock code audit of `public/js/app.js`, `public/js/graph-vie
 Use:
 
 - "socratink uses generation, corrective study, spacing, and retrieval to make mastery claims harder to fake."
-- "The graph tracks learning state only when the learner attempts, studies, and reconstructs."
+- "The graph does not show what the learner knows. It shows what Socratink has evidence for."
+- "The map starts as a hypothesis. It earns trust through learner-generated evidence."
+- "The starting map is an anchor, not a diagnostic."
 - "`primed` means the learner has made a meaningful attempt and is ready for targeted study."
 - "`solidified` means the learner produced a solid spaced reconstruction."
 
@@ -116,7 +118,12 @@ Avoid:
 
 - "AI proves mastery."
 - "Generated graphs mean understanding."
+- "Socratink knows what you know."
+- "The graph shows your understanding."
+- "Diagnostic" as a product capability.
+- Beginner/intermediate/advanced labels on the learner.
 - "Primed means learned."
+- "Study proves understanding."
 - "Actualized means consolidated" unless and until a live sleep/retention gate exists.
 - "The 5-minute interval is scientifically optimal."
 
