@@ -4,9 +4,9 @@ Use this document as the bridge between the repo-local Theta skill and the exter
 
 ## External Root
 
-`<LOCAL_RESEARCH_ROOT>`
+`/Users/jondev/dev/socratink/research/`
 
-Set this to the maintainer's local research-library path outside git.
+Maintainer's local research-library path outside git. Subfolders match "Current External Folders" below.
 
 ## Current External Folders
 
