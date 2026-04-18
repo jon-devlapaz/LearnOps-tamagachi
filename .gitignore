@@ -35,6 +35,8 @@ docs/**/.DS_Store
 .agents/skills/*
 !.agents/skills/socratink-brain/
 !.agents/skills/socratink-brain/**
+!.agents/skills/theta-research/
+!.agents/skills/theta-research/**
 
 # Track compiled Socratink Brain memory and only promoted raw evidence.
 .socratink-brain/*
